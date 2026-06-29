@@ -38,7 +38,7 @@ Applies to every task in this plan and all sibling plans:
 **Files:**
 - Modify: `go.mod` (add deps via `go get`)
 - Create: `Makefile`, `.env.example`, `.gitkeep` placeholders as needed
-- Create dirs: `cmd/server/`, `internal/app/`, `internal/domain/`, `internal/application/`, `internal/infrastructure/postgres/`, `internal/infrastructure/http/middleware/`, `internal/infrastructure/http/handler/`, `internal/shared/{response,errors,pagination,validator,security,datetime,csv}/`, `internal/web/`, `migrations/`, `apps/web/`
+- Create dirs: `cmd/server/`, `internal/app/`, `internal/domain/`, `internal/application/`, `internal/infrastructure/postgres/`, `internal/infrastructure/http/middleware/`, `internal/infrastructure/http/handler/`, `internal/shared/{response,errors,i18n,pagination,validator,security,datetime,csv}/`, `internal/web/`, `migrations/`, `apps/web/`
 
 **Interfaces:**
 - Produces: the module path `router-lens` and dependency set for all later tasks.
@@ -416,25 +416,147 @@ git commit -m "feat: shared AppError type with HTTP status mapping"
 
 ---
 
-### Task 4: Shared response envelope (`shared/response`)
+### Task 4: i18n catalog + response envelope (meta + localization)
 
-**TDD:** no — thin Echo wrappers. Add a small test asserting envelope shape.
+**TDD:** yes for `i18n` (Resolve precedence + Message fallback have logic); the response wrappers get one test asserting the localized error + `meta` shape.
 
 **Files:**
+- Create: `internal/shared/i18n/i18n.go`
+- Test: `internal/shared/i18n/i18n_test.go`
 - Create: `internal/shared/response/response.go`
 - Test: `internal/shared/response/response_test.go`
 
 **Interfaces:**
-- Consumes: `shared/errors` (`AppError`, `HTTPStatus`).
+- Consumes: `shared/errors` (`AppError`, `HTTPStatus`, `As`).
 - Produces:
   ```go
+  // i18n (pure — no Echo import)
+  type Lang string
+  const ( EN Lang = "en"; ID Lang = "id" )
+  const Default = EN
+  const ContextKey = "lang"                          // echo context key the middleware sets
+  func Resolve(acceptLanguage string) Lang            // first supported Accept-Language tag, else Default
+  func Message(code string, lang Lang, fallback string) string // catalog lookup, fallback to EN then `fallback`
+
+  // response
+  type Meta struct { Lang, RequestID, Timestamp string }
   func Data(c echo.Context, status int, data any) error
   func Created(c echo.Context, data any) error
   func NoContent(c echo.Context) error
-  func Error(c echo.Context, err error) error   // maps AppError → envelope; unknown → 500
+  func Error(c echo.Context, err error) error   // localizes message by code+lang; adds meta
   ```
+  Later plans extend the `i18n` catalog with their own error codes (one map entry per code).
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing i18n test**
+
+```go
+package i18n
+
+import "testing"
+
+func TestResolve(t *testing.T) {
+	cases := []struct {
+		accept string
+		want   Lang
+	}{
+		{"", EN},
+		{"id-ID,id;q=0.9,en;q=0.8", ID},
+		{"en-US,en;q=0.9", EN},
+		{"fr-FR", EN}, // unsupported falls back to default
+	}
+	for _, tc := range cases {
+		if got := Resolve(tc.accept); got != tc.want {
+			t.Errorf("Resolve(%q)=%q want %q", tc.accept, got, tc.want)
+		}
+	}
+}
+
+func TestMessage(t *testing.T) {
+	if Message("validation_failed", ID, "x") != "Validasi gagal" {
+		t.Errorf("ID validation message wrong: %q", Message("validation_failed", ID, "x"))
+	}
+	if Message("unknown_code", ID, "fallback msg") != "fallback msg" {
+		t.Error("unknown code should use fallback")
+	}
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `go test ./internal/shared/i18n/ -v`
+Expected: FAIL — undefined.
+
+- [ ] **Step 3: Write `i18n.go`**
+
+```go
+// Package i18n resolves the request language and maps error codes to localized
+// messages. It is pure (no Echo import) so domain/shared code can depend on it.
+package i18n
+
+import "strings"
+
+type Lang string
+
+const (
+	EN Lang = "en"
+	ID Lang = "id"
+)
+
+const (
+	Default    = EN
+	ContextKey = "lang"
+)
+
+func supported(l Lang) bool { return l == EN || l == ID }
+
+// Resolve picks the language from the Accept-Language header — the first
+// supported tag wins, otherwise the default. Header-driven content negotiation
+// per RFC 7231; no query/cookie override in v0.1.
+func Resolve(acceptLanguage string) Lang {
+	for _, part := range strings.Split(acceptLanguage, ",") {
+		tag := strings.ToLower(strings.TrimSpace(part))
+		if i := strings.IndexAny(tag, ";-"); i >= 0 {
+			tag = tag[:i]
+		}
+		if l := Lang(tag); supported(l) {
+			return l
+		}
+	}
+	return Default
+}
+
+// catalog maps an error code to its localized messages. Feature plans append.
+var catalog = map[string]map[Lang]string{
+	"internal_error":    {EN: "Internal server error", ID: "Terjadi kesalahan pada server"},
+	"validation_failed": {EN: "Validation failed", ID: "Validasi gagal"},
+	"unauthorized":      {EN: "Authentication required", ID: "Perlu autentikasi"},
+	"forbidden":         {EN: "Access denied", ID: "Akses ditolak"},
+	"not_found":         {EN: "Resource not found", ID: "Data tidak ditemukan"},
+}
+
+// Message returns the localized message for code, falling back to the default
+// language and finally to the provided fallback string.
+func Message(code string, lang Lang, fallback string) string {
+	byLang, ok := catalog[code]
+	if !ok {
+		return fallback
+	}
+	if msg, ok := byLang[lang]; ok {
+		return msg
+	}
+	if msg, ok := byLang[Default]; ok {
+		return msg
+	}
+	return fallback
+}
+```
+
+- [ ] **Step 4: Run i18n test to verify it passes**
+
+Run: `go test ./internal/shared/i18n/ -v`
+Expected: PASS.
+
+- [ ] **Step 5: Write the failing response test**
 
 ```go
 package response
@@ -447,49 +569,65 @@ import (
 
 	"github.com/labstack/echo/v4"
 	apperrors "router-lens/internal/shared/errors"
+	"router-lens/internal/shared/i18n"
 )
 
-func TestError_MapsAppError(t *testing.T) {
+func TestError_LocalizesWithMeta(t *testing.T) {
 	e := echo.New()
 	rec := httptest.NewRecorder()
 	c := e.NewContext(httptest.NewRequest(http.MethodGet, "/", nil), rec)
+	c.Set(i18n.ContextKey, i18n.ID)
 
-	_ = Error(c, apperrors.New(apperrors.KindNotFound, "project_not_found", "not found"))
+	_ = Error(c, apperrors.New(apperrors.KindValidation, "validation_failed", "validation failed"))
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("status: got %d want 404", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status: got %d want 400", rec.Code)
 	}
 	var body struct {
 		Error struct{ Code, Message string } `json:"error"`
+		Meta  struct{ Lang, Timestamp string } `json:"meta"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &body)
-	if body.Error.Code != "project_not_found" {
-		t.Fatalf("code: got %q", body.Error.Code)
+	if body.Error.Message != "Validasi gagal" {
+		t.Fatalf("expected ID message, got %q", body.Error.Message)
+	}
+	if body.Meta.Lang != "id" || body.Meta.Timestamp == "" {
+		t.Fatalf("meta wrong: %+v", body.Meta)
 	}
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 6: Run test to verify it fails**
 
 Run: `go test ./internal/shared/response/ -v`
 Expected: FAIL — undefined `Error`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 7: Write `response.go`**
 
 ```go
-// Package response writes the canonical JSON envelope for all handlers.
+// Package response writes the canonical JSON envelope (with meta + localized
+// error messages) for all handlers.
 package response
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	apperrors "router-lens/internal/shared/errors"
+	"router-lens/internal/shared/i18n"
 )
+
+type Meta struct {
+	Lang      string `json:"lang"`
+	RequestID string `json:"request_id,omitempty"`
+	Timestamp string `json:"timestamp"`
+}
 
 type envelope struct {
 	Data  any        `json:"data,omitempty"`
 	Error *errorBody `json:"error,omitempty"`
+	Meta  Meta       `json:"meta"`
 }
 
 type errorBody struct {
@@ -500,12 +638,28 @@ type errorBody struct {
 
 const codeInternal = "internal_error"
 
+// LangOf returns the language resolved by the Lang middleware, or the default.
+func LangOf(c echo.Context) i18n.Lang {
+	if l, ok := c.Get(i18n.ContextKey).(i18n.Lang); ok && l != "" {
+		return l
+	}
+	return i18n.Default
+}
+
+func meta(c echo.Context) Meta {
+	return Meta{
+		Lang:      string(LangOf(c)),
+		RequestID: c.Response().Header().Get(echo.HeaderXRequestID),
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
 func Data(c echo.Context, status int, data any) error {
-	return c.JSON(status, envelope{Data: data})
+	return c.JSON(status, envelope{Data: data, Meta: meta(c)})
 }
 
 func Created(c echo.Context, data any) error {
-	return c.JSON(http.StatusCreated, envelope{Data: data})
+	return c.JSON(http.StatusCreated, envelope{Data: data, Meta: meta(c)})
 }
 
 func NoContent(c echo.Context) error {
@@ -513,27 +667,30 @@ func NoContent(c echo.Context) error {
 }
 
 func Error(c echo.Context, err error) error {
+	lang := LangOf(c)
 	if ae, ok := apperrors.As(err); ok {
-		return c.JSON(apperrors.HTTPStatus(ae.Kind), envelope{Error: &errorBody{
-			Code: ae.Code, Message: ae.Message, Details: ae.Details,
-		}})
+		return c.JSON(apperrors.HTTPStatus(ae.Kind), envelope{
+			Error: &errorBody{Code: ae.Code, Message: i18n.Message(ae.Code, lang, ae.Message), Details: ae.Details},
+			Meta:  meta(c),
+		})
 	}
-	return c.JSON(http.StatusInternalServerError, envelope{Error: &errorBody{
-		Code: codeInternal, Message: "internal server error",
-	}})
+	return c.JSON(http.StatusInternalServerError, envelope{
+		Error: &errorBody{Code: codeInternal, Message: i18n.Message(codeInternal, lang, "internal server error")},
+		Meta:  meta(c),
+	})
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 8: Run test to verify it passes**
 
 Run: `go test ./internal/shared/response/ -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add internal/shared/response/
-git commit -m "feat: shared JSON response envelope helpers"
+git add internal/shared/i18n/ internal/shared/response/
+git commit -m "feat: i18n catalog and localized response envelope with meta"
 ```
 
 ---
@@ -826,6 +983,7 @@ git commit -m "feat: migrations 001-006 and embedded goose runner"
 **Files:**
 - Create: `internal/infrastructure/http/server.go`
 - Create: `internal/infrastructure/http/middleware/error_middleware.go`
+- Create: `internal/infrastructure/http/middleware/lang_middleware.go`
 - Create: `internal/web/web.go` (SPA-fallback stub; real embed lands in Plan 07)
 - Create: `cmd/server/main.go`
 - Test: `internal/infrastructure/http/server_test.go`
@@ -837,6 +995,8 @@ git commit -m "feat: migrations 001-006 and embedded goose runner"
   // http
   func NewServer(cfg app.Config) *echo.Echo               // mounts /api/v1 group + SPA fallback
   func RegisterHealth(g *echo.Group, ready func() bool)   // /healthz, /readyz
+  // middleware
+  func Lang(next echo.HandlerFunc) echo.HandlerFunc        // resolves i18n.Lang into the context
   // web
   func SPAHandler() echo.HandlerFunc                       // stub returns 200 "RouterLens" until Plan 07
   ```
@@ -892,6 +1052,27 @@ func ErrorHandler(err error, c echo.Context) {
 }
 ```
 
+- [ ] **Step 3b: Write the language middleware (header-driven)**
+
+```go
+package middleware
+
+import (
+	"github.com/labstack/echo/v4"
+
+	"router-lens/internal/shared/i18n"
+)
+
+// Lang resolves the request language from the Accept-Language header and stores
+// it in the Echo context for response localization.
+func Lang(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Set(i18n.ContextKey, i18n.Resolve(c.Request().Header.Get("Accept-Language")))
+		return next(c)
+	}
+}
+```
+
 - [ ] **Step 4: Write the SPA-fallback stub**
 
 ```go
@@ -940,7 +1121,9 @@ func NewServer(cfg app.Config) *echo.Echo {
 
 	e.Use(emw.Recover())
 	e.Use(emw.Logger())
+	e.Use(emw.RequestID())
 	e.Use(emw.BodyLimit(ingestionBodyLimit))
+	e.Use(middleware.Lang)
 
 	api := e.Group("/api/v1")
 	RegisterHealth(api, func() bool { return true })
@@ -1173,7 +1356,7 @@ git commit -m "feat: docker compose (postgres + app) and multi-stage dockerfile"
 Validated 8-plan roadmap (Codex decomposition pass applied — Plan 05 split into ingestion/logs/CSV + a separate analytics plan):
 
 - **02** Shared kit + security + cost calculator (TDD-first)
-- **03** Auth + first-run setup (**must expose a CSRF-token issuance artifact** for the Plan 07 api client's double-submit)
+- **03** Auth + first-run setup (sets the httpOnly session cookie on login, `SameSite=Lax`; no CSRF token — decision 13)
 - **04** Projects + API Keys + **Pricing CRUD** (the pricing repository Plan 05 ingestion depends on)
 - **05** Event ingestion + logs + CSV (depends on Plan 04 pricing repo for cost lookup and api_keys repo for the ingestion middleware)
 - **06** Analytics endpoints (overview/tokens/cost/latency/errors/providers/models)

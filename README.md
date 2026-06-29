@@ -152,7 +152,7 @@ Notes:
 | Layer | Choice |
 |-------|--------|
 | Backend | Go 1.26 + Echo v4 |
-| Frontend | React + TanStack Start (TypeScript), TanStack Query, Recharts |
+| Frontend | React + TanStack Start (TypeScript), shadcn/ui, TanStack Query, Recharts |
 | Database | PostgreSQL — the only dependency |
 | Auth | DB-backed session in an httpOnly cookie |
 | Deploy | One Go binary (frontend embedded) + Docker Compose |
@@ -208,8 +208,8 @@ Copy `.env.example` to `.env`:
 | `DATABASE_URL` | PostgreSQL connection string |
 | `APP_ENV` | `development` / `production` (toggles `Secure` cookies) |
 | `APP_PORT` | HTTP port (default `8080`) |
-| `SESSION_SECRET` | secret for session and CSRF handling |
-| `COOKIE_CROSS_SITE` | `true` only when UI and API live on different origins |
+| `SESSION_SECRET` | secret used for session handling |
+| `COOKIE_CROSS_SITE` | `true` only when UI and API live on different origins (reverse-proxied) |
 | `MAX_BACKDATE_DAYS` | reject events older than this (default `7`) |
 | `RETENTION_DAYS` | optional event pruning (off by default) |
 

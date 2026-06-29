@@ -90,7 +90,7 @@ internal/
                   event_repository.go, pricing_repository.go
     http/         server.go, router.go,
                   middleware/  session_middleware.go, apikey_middleware.go,
-                               error_middleware.go, csrf_middleware.go
+                               error_middleware.go, lang_middleware.go
                   handler/     setup_handler.go, auth_handler.go, project_handler.go,
                                apikey_handler.go, event_handler.go, analytics_handler.go,
                                pricing_handler.go
@@ -98,8 +98,9 @@ internal/
     response/     response.go
     errors/       errors.go
     pagination/   offset.go, keyset.go
-    validator/    validator.go
-    security/     password.go, session_token.go, apikey.go, cookie.go, csrf.go
+    i18n/         i18n.go (Lang, Resolve, error-code catalog)
+    validator/    validator.go (go-playground v10 + EN/ID translator)
+    security/     password.go, token.go (session + API key), cookie.go
     datetime/     range.go
     csv/          exporter.go
     web/          embed.go (//go:embed the built frontend) + SPA fallback handler
@@ -230,9 +231,22 @@ Use cases depend only on domain repository interfaces + the cost calculator. No 
 
 ## 8. HTTP API
 
-Base path `/api/v1`. JSON envelope: success `{ "data": ... }`, error
-`{ "error": { "code": "...", "message": "...", "details": ... } }`. Two auth boundaries:
-**session cookie** for dashboard routes, **API Key header** for ingestion only.
+Base path `/api/v1`. JSON envelope carries a `meta` block on every response:
+
+```json
+// success
+{ "data": { }, "meta": { "lang": "en", "request_id": "…", "timestamp": "2026-06-29T10:00:00Z" } }
+// error
+{ "error": { "code": "validation_failed", "message": "<localized>", "details": { "email": "<localized>" } },
+  "meta": { "lang": "id", "request_id": "…", "timestamp": "…" } }
+```
+
+`message` and validation `details` are **localized** (EN default + ID) by the error `code` through
+the `i18n` catalog (and the go-playground/validator/v10 translator for field errors). Language is
+resolved from the `Accept-Language` header (RFC 7231 content negotiation; no query/cookie override
+in v0.1), falling back to EN.
+
+Two auth boundaries: **session cookie** for dashboard routes, **API Key header** for ingestion only.
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
@@ -330,10 +344,12 @@ Any cell beginning with `= + - @` is prefixed with `'` to prevent spreadsheet fo
 
 ## 10. Reusable shared packages
 
-`response` (envelope + helpers) · `errors` (`AppError`, sentinels, central Echo error handler) ·
-`pagination` (`offset` for CRUD, `keyset` for events incl. cursor encode/decode) · `validator` ·
-`security` (`password` argon2id, `session_token`, `apikey` generate+hash, `cookie` builder,
-`csrf` double-submit) · `datetime` (range parser: `from`/`to` ISO or `preset=24h|7d|30d`, applies
+`response` (envelope + `meta` builder + localization) · `errors` (`AppError` with i18n `Code`,
+sentinels, central Echo error handler) · `i18n` (`Lang` type, `Resolve`, error-code → `{en,id}`
+catalog; pure) · `pagination` (`offset` for CRUD, `keyset` for events incl. cursor encode/decode) ·
+`validator` (go-playground/validator/v10 + universal-translator, EN + ID; localized field→message) ·
+`security` (`password` argon2id, `session_token`, `apikey` generate+hash, `cookie` builder) ·
+`datetime` (range parser: `from`/`to` ISO or `preset=24h|7d|30d`, applies
 default + max-window) · `csv` (streaming, injection-safe exporter). No duplicated logic for any of
 these concerns anywhere else.
 
@@ -346,16 +362,18 @@ these concerns anywhere else.
 
 **Data layer (no duplication):**
 - One typed API client `lib/api.ts` (`fetch` wrapper, `credentials: "include"`, parses the
-  `{data}`/`{error}` envelope, attaches the CSRF token on mutations). Every request goes through it.
+  `{data}`/`{error}` envelope). Every request goes through it.
 - Per-domain service (`services/authService.ts`, `projectService.ts`, `eventService.ts`,
   `analyticsService.ts`, `pricingService.ts`) calling the client — endpoints defined once here.
 - TanStack Query hooks (`hooks/useAuth.ts`, `useProjects.ts`, `useEvents.ts`, `useAnalytics.ts`,
   `usePricing.ts`) own caching/invalidation. Components never call `fetch` directly.
 - Formatting helpers reusable: `lib/money.ts`, `lib/token.ts`, `lib/date.ts`, `lib/format.ts`.
 
-**Reusable components:** `<DataTable>` (filter + keyset paging), `<DateRangePicker>`,
-`<StatCard>`, `<ChartCard>`, plus `ui/`, `layout/`, `dashboard/`, `logs/`, `charts/`, `forms/`.
-Charts via **Recharts**.
+**Component system:** **shadcn/ui** — Radix primitives + Tailwind v4 + CSS-variable theming
+(`:root`/`.dark`) + the `cn()`/`cva` pattern, with `components.json` at `apps/web/`. Built on top of
+it: `<DataTable>` (filter + keyset paging), `<DateRangePicker>`, `<StatCard>`, `<ChartCard>`, plus
+`ui/` (shadcn primitives), `layout/`, `dashboard/`, `logs/`, `charts/`, `forms/`. Charts use the
+shadcn Chart component (Recharts-based).
 
 **Auth state** comes from `GET /api/v1/auth/me` via TanStack Query — never from storage.
 Unpriced models/Events render an explicit "unpriced" badge rather than `$0`.
@@ -373,12 +391,15 @@ gate applies; the SEO gate does not.
 ## 12. Security
 
 - **Passwords:** argon2id. **Session tokens & API keys:** `crypto/rand`, stored only as `sha256`.
-- **CSRF:** httpOnly cookies do not stop cross-site POSTs. The default deployment is **same-origin**
-  (the Go binary serves UI + API) → `SameSite=Lax` plus a double-submit CSRF token on state-changing
-  requests. A split-origin setup switches to `SameSite=None; Secure` via `COOKIE_CROSS_SITE`. The
-  API-key ingestion route is exempt (no cookie).
+- **CSRF (SameSite, no token in v0.1):** the deployment is same-origin, so the session cookie uses
+  `SameSite=Lax` and every state change uses POST/PUT/DELETE (never GET). `SameSite=Lax` keeps the
+  session cookie off cross-site mutating requests, which covers CSRF for this self-hosted threat
+  model; a double-submit CSRF token is deferred to v0.2 (split-origin or untrusted multi-user only).
+  The API-key ingestion route is cookie-exempt.
 - **Baseline hardening (v0.1):** Echo `BodyLimit` (≈64 KB on ingestion), server read/write
   timeouts, bounded DB connection pool. Full per-key rate-limiting deferred to v0.2.
+- **No CORS:** the monolith is same-origin; the dev frontend reaches the API through the Vite proxy.
+  CORS is not configured (re-add a small middleware later only if a split-origin deploy is needed).
 - **Secrets:** never log API keys, passwords, session tokens, or raw `metadata`. `gitleaks` clean.
 - **SQL:** parameterized only (`$1`...). No string-built queries.
 
@@ -478,7 +499,7 @@ seed data, and a clear README are present.
 2. Migrations 001–00N (users, sessions, projects, api_keys, pricing_rules, llm_events) + DB connection.
 3. Shared packages (response, errors, pagination, validator, security, datetime, csv) — TDD where YES.
 4. Domain + repositories (entities, value objects, repo interfaces, cost calculator) — TDD the calculator.
-5. Auth + first-run setup (session middleware, CSRF, cookie) — TDD security helpers.
+5. Auth + first-run setup (session middleware, session cookie) — TDD security helpers.
 6. Project + API Key use cases, handlers, repos.
 7. Event ingestion (API-key middleware, validation, cost calc, idempotent insert) — TDD validators.
 8. Request logs (keyset list, get, CSV export).

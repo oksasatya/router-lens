@@ -37,6 +37,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# ---- local tool caches ----
+.impeccable/
+
 # CLAUDE
 CLAUDE.md
 CONTEXT.md
