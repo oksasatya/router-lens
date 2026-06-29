@@ -1,0 +1,42 @@
+# ---- Secrets / env ----
+.env
+.env.*
+!.env.example
+
+# ---- Go ----
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+__debug_bin*
+# embedded frontend build copied in at build time
+internal/web/dist/
+
+# ---- Node / frontend (apps/web) ----
+node_modules/
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.output/
+apps/web/.nitro/
+apps/web/.tanstack/
+apps/web/.vite/
+apps/web/.vinxi/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# CLAUDE
+CLAUDE.md
+CONTEXT.md
