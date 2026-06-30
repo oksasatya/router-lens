@@ -62,6 +62,27 @@ func NoContent(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+type pageMeta struct {
+	Page  int `json:"page"`
+	Limit int `json:"limit"`
+	Total int `json:"total"`
+}
+
+type pageData struct {
+	Items      any      `json:"items"`
+	Pagination pageMeta `json:"pagination"`
+}
+
+// Paginated writes the canonical list envelope:
+// { "data": { "items": [...], "pagination": {page, limit, total} }, "meta": {...} }.
+// items must be a slice; nil renders as an empty array on the client via omitempty-free encoding.
+func Paginated(c echo.Context, status int, items any, page, limit, total int) error {
+	return c.JSON(status, envelope{
+		Data: pageData{Items: items, Pagination: pageMeta{Page: page, Limit: limit, Total: total}},
+		Meta: meta(c),
+	})
+}
+
 func Error(c echo.Context, err error) error {
 	lang := LangOf(c)
 	if ae, ok := apperrors.As(err); ok {

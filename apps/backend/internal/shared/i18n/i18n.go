@@ -48,6 +48,18 @@ const (
 	// --- auth ---
 	CodeAuthInvalidCredentials = "auth.invalid_credentials"
 	CodeAuthSetupLocked        = "auth.setup_locked"
+
+	// --- project ---
+	CodeProjectNotFound  = "project.not_found"
+	CodeProjectSlugTaken = "project.slug_taken"
+
+	// --- apikey ---
+	CodeAPIKeyNotFound = "apikey.not_found"
+
+	// --- pricing ---
+	CodePricingNotFound     = "pricing.not_found"
+	CodePricingDuplicate    = "pricing.duplicate"
+	CodePricingInvalidPrice = "pricing.invalid_price"
 )
 
 // catalog maps an error code to its localized messages.
@@ -61,7 +73,15 @@ var catalog = map[string]map[Lang]string{
 	// --- auth ---
 	CodeAuthInvalidCredentials: {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
 	CodeAuthSetupLocked:        {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
-	// --- feature domains append sections below: project.*, apikey.*, event.*, pricing.* ---
+	// --- project ---
+	CodeProjectNotFound:  {EN: "Project not found", ID: "Proyek tidak ditemukan"},
+	CodeProjectSlugTaken: {EN: "A project with this name already exists", ID: "Proyek dengan nama ini sudah ada"},
+	// --- apikey ---
+	CodeAPIKeyNotFound: {EN: "API key not found", ID: "Kunci API tidak ditemukan"},
+	// --- pricing ---
+	CodePricingNotFound:     {EN: "Pricing rule not found", ID: "Aturan harga tidak ditemukan"},
+	CodePricingDuplicate:    {EN: "A pricing rule for this provider/model already exists", ID: "Aturan harga untuk provider/model ini sudah ada"},
+	CodePricingInvalidPrice: {EN: "Price must not be negative", ID: "Harga tidak boleh negatif"},
 }
 
 // Message returns the localized message for code, falling back to the default
