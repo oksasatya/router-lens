@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="apps/frontend/public/logo.webp" width="96" alt="RouterLens logo" />
+
 # RouterLens
 
 ### Self-hosted observability for LLM routers and AI coding agents.
@@ -8,7 +10,7 @@ Every model call your router makes — tokens, cost, latency, errors — in one 
 No SaaS. No Redis. One Go binary and a Postgres.
 
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev)
-[![React](https://img.shields.io/badge/React-TanStack_Start-0EA5E9?logo=react&logoColor=white)](https://tanstack.com/start)
+[![React](https://img.shields.io/badge/React_19-Vite_SPA-0EA5E9?logo=react&logoColor=white)](https://vite.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-only_dependency-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-000000)](#license)
 [![Status](https://img.shields.io/badge/status-MVP_v0.1-FACC15)](#roadmap)
