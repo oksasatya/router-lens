@@ -4,7 +4,7 @@ _Last updated: 2026-06-30. Living document — update as plans get written and e
 
 ## Current phase
 
-**Planning.** The design is settled and the first three implementation plans are written. **No source code exists yet** — the repository holds documentation and plans only. The project is ready to begin executing Plan 01.
+**Implementation.** The design is settled and execution is underway on branch `dev`. Backend foundation, auth, and CRUD are in place (Plans 01–04). The frontend is a Vite + React SPA: the app shell + design system (FE Plan 01) and the auth screens — first-run setup, login, route guards, user menu/logout (FE Plan 02) — are built and verified end-to-end against the live backend.
 
 ---
 
@@ -17,8 +17,8 @@ _Last updated: 2026-06-30. Living document — update as plans get written and e
 | Domain glossary (`CONTEXT.md`) | ✅ Done (local-only, gitignored) |
 | `README.md` + `.gitignore` | ✅ Done |
 | Implementation plans | 🟡 3 of 8 written (01–03) |
-| Backend source code | ⬜ Not started |
-| Frontend source code | ⬜ Not started |
+| Backend source code | 🟡 In progress (Plans 01–04: foundation, shared kit, auth, CRUD) |
+| Frontend source code | 🟡 In progress (FE Plans 01–02: shell + design system, auth screens) |
 | Migrations applied | ⬜ Not yet (defined in Plan 01) |
 | Tests run | ⬜ Not yet (defined per plan) |
 | Git repository | ⬜ Not initialized (owner will run `git init`) |
@@ -50,8 +50,10 @@ Each plan produces working, testable software on its own. Plans 04–08 are scop
 | 04 | Projects + API Keys + Pricing CRUD | ⬜ Planned | CRUD behind the session middleware; the pricing repo Plan 05 reads for cost | 02, 03 |
 | 05 | Event ingestion + logs + CSV | ⬜ Planned | `POST /events` (Bearer API key, validated, idempotent, cost at ingest), keyset logs, streamed CSV | 02, 04 |
 | 06 | Analytics endpoints | ⬜ Planned | overview / tokens / cost / latency (P95) / errors / providers / models, bounded date range | 05 |
-| 07 | Frontend (TanStack Start + shadcn/ui) | ⬜ Planned | setup/login + dashboard/logs/analytics/projects/keys/pricing/settings, api client + query hooks | 03–06 |
+| 07 | Frontend (now split into FE Plans 01–0N, Vite + React SPA) | 🟡 In progress | FE-01 ✅ shell + design system; FE-02 ✅ auth (setup/login/guard/user menu); next: projects/keys/pricing → logs → analytics screens | 03–06 |
 | 08 | Embed + DoD | ⬜ Planned | `internal/web` `embed.FS` of the built frontend, final Dockerfile, seed, full verification | 07 |
+
+> **Frontend pivot:** the FE is a **Vite + React SPA** (TanStack Router + Query, shadcn/ui on Base UI, Tailwind v4), tracked as its own `FE Plan NN` series (not TanStack Start). FE-01 (foundation/shell) and FE-02 (auth) are done; remaining screens follow.
 
 ---
 

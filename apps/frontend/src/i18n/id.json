@@ -20,5 +20,37 @@
     "signIn": "Masuk",
     "comingSoon": "Segera hadir",
     "menu": "Menu"
+  },
+  "auth": {
+    "login": {
+      "title": "Selamat datang kembali",
+      "subtitle": "Masuk ke dasbor RouterLens Anda.",
+      "submit": "Masuk",
+      "success": "Berhasil masuk"
+    },
+    "setup": {
+      "title": "Buat akun admin",
+      "subtitle": "Penyiapan awal — buat administrator RouterLens.",
+      "submit": "Buat akun",
+      "success": "Akun admin dibuat"
+    },
+    "fields": {
+      "name": "Nama",
+      "namePlaceholder": "Opsional",
+      "email": "Email",
+      "password": "Kata sandi",
+      "passwordHint": "Minimal 8 karakter."
+    },
+    "showPassword": "Tampilkan kata sandi",
+    "hidePassword": "Sembunyikan kata sandi",
+    "account": "Akun",
+    "signOut": "Keluar",
+    "signedOut": "Berhasil keluar",
+    "errors": {
+      "email": "Masukkan alamat email yang valid.",
+      "passwordRequired": "Kata sandi wajib diisi.",
+      "passwordMin": "Kata sandi minimal 8 karakter.",
+      "generic": "Terjadi kesalahan. Silakan coba lagi."
+    }
   }
 }

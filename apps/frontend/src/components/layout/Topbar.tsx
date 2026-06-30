@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { NavLinks } from "./NavLinks";
+import { UserMenu } from "./UserMenu";
 
 export function Topbar() {
   const { t } = useTranslation();
@@ -32,9 +32,7 @@ export function Topbar() {
       <div className="flex-1" />
       <ThemeToggle />
       <LanguageToggle />
-      <Avatar className="size-8">
-        <AvatarFallback className="bg-primary/15 text-xs text-primary">RL</AvatarFallback>
-      </Avatar>
+      <UserMenu />
     </header>
   );
 }

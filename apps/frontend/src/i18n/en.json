@@ -20,5 +20,37 @@
     "signIn": "Sign in",
     "comingSoon": "Coming soon",
     "menu": "Menu"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your RouterLens dashboard.",
+      "submit": "Sign in",
+      "success": "Signed in"
+    },
+    "setup": {
+      "title": "Create your admin account",
+      "subtitle": "First run — set up the RouterLens administrator.",
+      "submit": "Create account",
+      "success": "Admin account created"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Optional",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "At least 8 characters."
+    },
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "account": "Account",
+    "signOut": "Sign out",
+    "signedOut": "Signed out",
+    "errors": {
+      "email": "Enter a valid email address.",
+      "passwordRequired": "Password is required.",
+      "passwordMin": "Password must be at least 8 characters.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }
