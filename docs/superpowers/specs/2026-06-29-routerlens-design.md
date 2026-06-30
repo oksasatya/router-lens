@@ -106,7 +106,7 @@ apps/backend/                  Go module `router-lens` (go.mod here; imports sta
       csv/          exporter.go
     web/            embed.go (//go:embed the built frontend) + SPA fallback handler
   migrations/       NNN_<name>.sql (goose single-file: -- +goose Up / -- +goose Down)
-apps/frontend/      TanStack Start app (built to static, embedded into the Go binary)
+apps/frontend/      Vite + React SPA app (built to static, embedded into the Go binary)
 docker-compose.yml, Makefile, README.md, docs/
 ```
 
@@ -356,7 +356,7 @@ these concerns anywhere else.
 
 ---
 
-## 11. Frontend (apps/web — TanStack Start)
+## 11. Frontend (apps/frontend — Vite + React SPA)
 
 **Routes:** `__root.tsx`, `setup.tsx`, `login.tsx`, `dashboard.tsx` (overview), `logs.tsx`,
 `providers.tsx`, `models.tsx`, `projects.tsx`, `api-keys.tsx`, `pricing.tsx`, `settings.tsx`.
@@ -371,7 +371,7 @@ these concerns anywhere else.
 - Formatting helpers reusable: `lib/money.ts`, `lib/token.ts`, `lib/date.ts`, `lib/format.ts`.
 
 **Component system:** **shadcn/ui** — Radix primitives + Tailwind v4 + CSS-variable theming
-(`:root`/`.dark`) + the `cn()`/`cva` pattern, with `components.json` at `apps/web/`. Built on top of
+(`:root`/`.dark`) + the `cn()`/`cva` pattern, with `components.json` at `apps/frontend/`. Built on top of
 it: `<DataTable>` (filter + keyset paging), `<DateRangePicker>`, `<StatCard>`, `<ChartCard>`, plus
 `ui/` (shadcn primitives), `layout/`, `dashboard/`, `logs/`, `charts/`, `forms/`. Charts use the
 shadcn Chart component (Recharts-based).
@@ -482,7 +482,7 @@ to formal ADRs if/when the project grows.
 
 ## 15. Definition of Done
 
-`docker compose up` brings up Postgres + Go/Echo backend + TanStack Start frontend; migrations
+`docker compose up` brings up Postgres + Go/Echo backend + Vite + React SPA frontend; migrations
 apply (on boot and via `make migrate`). First-run setup creates the admin; login/logout works via
 httpOnly cookie. A User can create a Project, create an API Key (plaintext shown once), ingest an
 Event with that key (validated, idempotent, estimated cost auto-computed from pricing with a price
