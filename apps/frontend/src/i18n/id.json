@@ -4,7 +4,7 @@
     "tagline": "Observabilitas untuk LLM router"
   },
   "nav": {
-    "dashboard": "Dasbor",
+    "dashboard": "Beranda",
     "logs": "Log",
     "projects": "Proyek",
     "apiKeys": "Kunci API",
