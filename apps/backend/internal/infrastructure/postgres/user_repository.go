@@ -28,18 +28,17 @@ func (r *UserRepository) CreateInitialAdmin(ctx context.Context, u *user.User) (
 	if err != nil {
 		return false, err
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback(ctx)
-		}
-	}()
+	// Always release the connection. Rollback after a successful Commit is a
+	// harmless no-op (ErrTxClosed); on the ErrNoRows / error paths it returns
+	// the connection and releases the advisory lock. Without an unconditional
+	// rollback the ErrNoRows path below leaks the connection and hangs pool.Close().
+	defer func() { _ = tx.Rollback(ctx) }()
 	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", int64(8723461)); err != nil {
 		return false, err
 	}
 	err = tx.QueryRow(ctx, q, u.Email, u.PasswordHash, u.Name).
 		Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		err = nil
 		return false, nil // a user already exists
 	}
 	if err != nil {
