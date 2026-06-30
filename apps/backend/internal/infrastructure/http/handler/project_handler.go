@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	projectapp "router-lens/internal/application/project"
-	projectdomain "router-lens/internal/domain/project"
+	"router-lens/internal/infrastructure/http/dto"
 	mw "router-lens/internal/infrastructure/http/middleware"
 	"router-lens/internal/shared/pagination"
 	"router-lens/internal/shared/response"
@@ -31,33 +31,8 @@ func (h *ProjectHandler) Register(api *echo.Group, session echo.MiddlewareFunc) 
 	api.DELETE(idPath, h.delete, session)
 }
 
-type projectRequest struct {
-	Name        string `json:"name" validate:"required,max=120"`
-	Description string `json:"description" validate:"max=500"`
-}
-
-type projectDTO struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Description string `json:"description"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-}
-
-func toProjectDTO(p *projectdomain.Project) projectDTO {
-	return projectDTO{
-		ID:          p.ID,
-		Name:        p.Name,
-		Slug:        p.Slug,
-		Description: p.Description,
-		CreatedAt:   p.CreatedAt.UTC().Format(timeLayout),
-		UpdatedAt:   p.UpdatedAt.UTC().Format(timeLayout),
-	}
-}
-
 func (h *ProjectHandler) create(c echo.Context) error {
-	var req projectRequest
+	var req dto.ProjectRequest
 	if err := bindAndValidate(c, h.v, &req); err != nil {
 		return err
 	}
@@ -65,7 +40,7 @@ func (h *ProjectHandler) create(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return response.Created(c, toProjectDTO(p))
+	return response.Created(c, dto.FromProject(p))
 }
 
 func (h *ProjectHandler) list(c echo.Context) error {
@@ -74,9 +49,9 @@ func (h *ProjectHandler) list(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	dtos := make([]projectDTO, 0, len(items))
+	dtos := make([]dto.ProjectResponse, 0, len(items))
 	for _, p := range items {
-		dtos = append(dtos, toProjectDTO(p))
+		dtos = append(dtos, dto.FromProject(p))
 	}
 	return response.Paginated(c, http.StatusOK, dtos, off.Page, off.Limit, total)
 }
@@ -86,11 +61,11 @@ func (h *ProjectHandler) get(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return response.Data(c, http.StatusOK, toProjectDTO(p))
+	return response.Data(c, http.StatusOK, dto.FromProject(p))
 }
 
 func (h *ProjectHandler) update(c echo.Context) error {
-	var req projectRequest
+	var req dto.ProjectRequest
 	if err := bindAndValidate(c, h.v, &req); err != nil {
 		return err
 	}
@@ -98,7 +73,7 @@ func (h *ProjectHandler) update(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return response.Data(c, http.StatusOK, toProjectDTO(p))
+	return response.Data(c, http.StatusOK, dto.FromProject(p))
 }
 
 func (h *ProjectHandler) delete(c echo.Context) error {

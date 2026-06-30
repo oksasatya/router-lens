@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	apikeyapp "router-lens/internal/application/apikey"
-	apikeydomain "router-lens/internal/domain/apikey"
+	"router-lens/internal/infrastructure/http/dto"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/validator"
 )
@@ -26,39 +26,8 @@ func (h *APIKeyHandler) Register(api *echo.Group, session echo.MiddlewareFunc) {
 	api.DELETE("/api-keys/:id", h.revoke, session)
 }
 
-type apiKeyRequest struct {
-	Name string `json:"name" validate:"required,max=120"`
-}
-
-type apiKeyDTO struct {
-	ID         string  `json:"id"`
-	Name       string  `json:"name"`
-	KeyPrefix  string  `json:"key_prefix"`
-	LastUsedAt *string `json:"last_used_at"`
-	RevokedAt  *string `json:"revoked_at"`
-	CreatedAt  string  `json:"created_at"`
-}
-
-// apiKeyCreatedDTO is returned ONCE on creation — it carries the plaintext key,
-// which is never persisted and never returned again.
-type apiKeyCreatedDTO struct {
-	apiKeyDTO
-	Key string `json:"key"`
-}
-
-func toAPIKeyDTO(k *apikeydomain.APIKey) apiKeyDTO {
-	return apiKeyDTO{
-		ID:         k.ID,
-		Name:       k.Name,
-		KeyPrefix:  k.KeyPrefix,
-		LastUsedAt: formatNullableTime(k.LastUsedAt),
-		RevokedAt:  formatNullableTime(k.RevokedAt),
-		CreatedAt:  k.CreatedAt.UTC().Format(timeLayout),
-	}
-}
-
 func (h *APIKeyHandler) create(c echo.Context) error {
-	var req apiKeyRequest
+	var req dto.APIKeyRequest
 	if err := bindAndValidate(c, h.v, &req); err != nil {
 		return err
 	}
@@ -66,7 +35,7 @@ func (h *APIKeyHandler) create(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return response.Created(c, apiKeyCreatedDTO{apiKeyDTO: toAPIKeyDTO(k), Key: plaintext})
+	return response.Created(c, dto.APIKeyCreatedResponse{APIKeyResponse: dto.FromAPIKey(k), Key: plaintext})
 }
 
 func (h *APIKeyHandler) list(c echo.Context) error {
@@ -74,9 +43,9 @@ func (h *APIKeyHandler) list(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	dtos := make([]apiKeyDTO, 0, len(keys))
+	dtos := make([]dto.APIKeyResponse, 0, len(keys))
 	for _, k := range keys {
-		dtos = append(dtos, toAPIKeyDTO(k))
+		dtos = append(dtos, dto.FromAPIKey(k))
 	}
 	return response.Data(c, http.StatusOK, dtos)
 }

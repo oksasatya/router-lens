@@ -7,6 +7,7 @@ import (
 
 	"router-lens/internal/app"
 	"router-lens/internal/application/auth"
+	"router-lens/internal/infrastructure/http/dto"
 	mw "router-lens/internal/infrastructure/http/middleware"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/security"
@@ -31,23 +32,6 @@ func (h *AuthHandler) Register(api *echo.Group, session echo.MiddlewareFunc) {
 	api.GET("/auth/me", h.me, session)
 }
 
-type setupRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,max=128"`
-	Name     string `json:"name" validate:"max=100"`
-}
-
-type loginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
-}
-
-type userDTO struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-}
-
 func (h *AuthHandler) setupStatus(c echo.Context) error {
 	needs, err := h.svc.NeedsSetup(c.Request().Context())
 	if err != nil {
@@ -57,7 +41,7 @@ func (h *AuthHandler) setupStatus(c echo.Context) error {
 }
 
 func (h *AuthHandler) setup(c echo.Context) error {
-	var req setupRequest
+	var req dto.SetupRequest
 	if err := bindAndValidate(c, h.v, &req); err != nil {
 		return err
 	}
@@ -68,7 +52,7 @@ func (h *AuthHandler) setup(c echo.Context) error {
 }
 
 func (h *AuthHandler) login(c echo.Context) error {
-	var req loginRequest
+	var req dto.LoginRequest
 	if err := bindAndValidate(c, h.v, &req); err != nil {
 		return err
 	}
@@ -93,7 +77,7 @@ func (h *AuthHandler) logout(c echo.Context) error {
 
 func (h *AuthHandler) me(c echo.Context) error {
 	u := mw.CurrentUser(c)
-	return response.Data(c, http.StatusOK, userDTO{ID: u.ID, Email: u.Email, Name: u.Name})
+	return response.Data(c, http.StatusOK, dto.FromUser(u))
 }
 
 func (h *AuthHandler) cookieOpts() security.CookieOpts {
@@ -102,12 +86,4 @@ func (h *AuthHandler) cookieOpts() security.CookieOpts {
 		CrossSite: h.cfg.CookieCrossSite,
 		MaxAge:    auth.SessionTTL,
 	}
-}
-
-// bindAndValidate binds the JSON body and validates it in the request language.
-func bindAndValidate(c echo.Context, v *validator.Validator, dst any) error {
-	if err := c.Bind(dst); err != nil {
-		return err
-	}
-	return v.Struct(dst, response.LangOf(c))
 }

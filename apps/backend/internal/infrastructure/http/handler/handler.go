@@ -1,14 +1,17 @@
 package handler
 
-import "time"
+import (
+	"github.com/labstack/echo/v4"
 
-const timeLayout = time.RFC3339
+	"router-lens/internal/shared/response"
+	"router-lens/internal/shared/validator"
+)
 
-// formatNullableTime renders a *time.Time as a UTC RFC3339 *string, or nil.
-func formatNullableTime(t *time.Time) *string {
-	if t == nil {
-		return nil
+// bindAndValidate binds the JSON body and validates it in the request language.
+// Shared by every handler in this package.
+func bindAndValidate(c echo.Context, v *validator.Validator, dst any) error {
+	if err := c.Bind(dst); err != nil {
+		return err
 	}
-	s := t.UTC().Format(timeLayout)
-	return &s
+	return v.Struct(dst, response.LangOf(c))
 }
