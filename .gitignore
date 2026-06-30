@@ -13,17 +13,18 @@ coverage.out
 coverage.html
 __debug_bin*
 # embedded frontend build copied in at build time
-internal/web/dist/
+apps/backend/internal/web/dist/
+apps/backend/bin/
 
-# ---- Node / frontend (apps/web) ----
+# ---- Node / frontend (apps/frontend) ----
 node_modules/
-apps/web/node_modules/
-apps/web/dist/
-apps/web/.output/
-apps/web/.nitro/
-apps/web/.tanstack/
-apps/web/.vite/
-apps/web/.vinxi/
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/.output/
+apps/frontend/.nitro/
+apps/frontend/.tanstack/
+apps/frontend/.vite/
+apps/frontend/.vinxi/
 *.log
 npm-debug.log*
 pnpm-debug.log*

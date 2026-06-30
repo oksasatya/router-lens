@@ -12,8 +12,9 @@
 
 Applies to every task in this plan and all sibling plans:
 
-- **Go 1.26**, module `router-lens`. Import paths: `router-lens/internal/...`, `router-lens/migrations`.
-- **No Redis.** PostgreSQL is the only datastore. **No DI framework** — manual constructor wiring in `cmd/server/main.go`.
+- **Monorepo layout:** all Go code lives under `apps/backend/` (go.mod there); the frontend under `apps/frontend/`. The `Files:` paths below (`cmd/server`, `internal/...`, `migrations/`) are **relative to `apps/backend/`**. The Go module is `router-lens` and import paths stay `router-lens/internal/...` — the module name is independent of the folder.
+- **Go 1.26**, module `router-lens`. Import paths: `router-lens/internal/...`.
+- **No Redis.** PostgreSQL is the only datastore. **DI via Uber Fx** (`go.uber.org/fx`) — per-module provider constructors + `fx.Lifecycle` `OnStart`/`OnStop` hooks in `cmd/server/main.go`. Constructors stay plain (unit-testable without Fx); `fx.Run` handles SIGINT/SIGTERM graceful shutdown.
 - **Hexagonal layering (HARD):** `domain/` imports nothing from Echo/`database/sql`/pgx/`infrastructure/`. Handlers parse→usecase→response only. Repository interfaces live in `domain/`, implementations in `infrastructure/postgres/`.
 - **Money** = `NUMERIC` (never float). **Time** = `timestamptz`, UTC. **IDs** = UUID.
 - **Single deployable, same-origin:** one binary serves API (`/api/v1/*`) and the embedded UI (`/*`).
@@ -38,7 +39,7 @@ Applies to every task in this plan and all sibling plans:
 **Files:**
 - Modify: `go.mod` (add deps via `go get`)
 - Create: `Makefile`, `.env.example`, `.gitkeep` placeholders as needed
-- Create dirs: `cmd/server/`, `internal/app/`, `internal/domain/`, `internal/application/`, `internal/infrastructure/postgres/`, `internal/infrastructure/http/middleware/`, `internal/infrastructure/http/handler/`, `internal/shared/{response,errors,i18n,pagination,validator,security,datetime,csv}/`, `internal/web/`, `migrations/`, `apps/web/`
+- Create dirs: `cmd/server/`, `internal/app/`, `internal/domain/`, `internal/application/`, `internal/infrastructure/postgres/`, `internal/infrastructure/http/middleware/`, `internal/infrastructure/http/handler/`, `internal/shared/{response,errors,i18n,pagination,validator,security,datetime,csv}/`, `internal/web/`, `migrations/` (all under `apps/backend/`), and `apps/frontend/`
 
 **Interfaces:**
 - Produces: the module path `router-lens` and dependency set for all later tasks.
@@ -51,6 +52,7 @@ go get github.com/jackc/pgx/v5@latest
 go get github.com/pressly/goose/v3@latest
 go get github.com/joho/godotenv@latest
 go get github.com/google/uuid@latest
+go get go.uber.org/fx@latest
 ```
 
 - [ ] **Step 2: Create `.env.example`**
@@ -1117,6 +1119,7 @@ const ingestionBodyLimit = "64KB"
 func NewServer(cfg app.Config) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
+	e.Debug = !cfg.IsProduction()
 	e.HTTPErrorHandler = middleware.ErrorHandler
 
 	e.Use(emw.Recover())
@@ -1152,7 +1155,7 @@ func RegisterHealth(g *echo.Group, ready func() bool) {
 Run: `go test ./internal/infrastructure/http/ -run TestHealthz -v`
 Expected: PASS.
 
-- [ ] **Step 7: Write `cmd/server/main.go` (boot + migrate + graceful shutdown)**
+- [ ] **Step 7: Write `cmd/server/main.go` (Fx app + lifecycle; `-migrate-only` non-Fx path)**
 
 ```go
 package main
@@ -1163,10 +1166,11 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/fx"
 
 	"router-lens/internal/app"
 	infrahttp "router-lens/internal/infrastructure/http"
@@ -1177,54 +1181,73 @@ func main() {
 	migrateOnly := flag.Bool("migrate-only", false, "apply migrations then exit")
 	flag.Parse()
 
-	if err := run(*migrateOnly); err != nil {
-		log.Fatalf("startup: %v", err)
+	if *migrateOnly {
+		if err := migrateAndExit(); err != nil {
+			log.Fatalf("migrate: %v", err)
+		}
+		return
 	}
+
+	fx.New(
+		fx.Provide(
+			app.Load,            // () -> (app.Config, error)
+			providePool,         // (fx.Lifecycle, app.Config) -> (*pgxpool.Pool, error)
+			infrahttp.NewServer, // (app.Config) -> *echo.Echo
+		),
+		fx.Invoke(runMigrations), // runs during startup, before the server listens
+		fx.Invoke(startServer),   // binds the HTTP server to the lifecycle
+	).Run()
 }
 
-func run(migrateOnly bool) error {
-	cfg, err := app.Load()
+// providePool opens the pool and ties its lifetime to the fx lifecycle.
+func providePool(lc fx.Lifecycle, cfg app.Config) (*pgxpool.Pool, error) {
+	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	lc.Append(fx.Hook{OnStop: func(context.Context) error { pool.Close(); return nil }})
+	return pool, nil
+}
 
-	ctx := context.Background()
-	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
+// runMigrations applies migrations during startup, before the server listens.
+func runMigrations(pool *pgxpool.Pool) error {
+	return postgres.Migrate(context.Background(), pool)
+}
 
-	if err := postgres.Migrate(ctx, pool); err != nil {
-		return err
-	}
-	if migrateOnly {
-		log.Println("migrations applied")
-		return nil
-	}
-
-	e := infrahttp.NewServer(cfg)
+// startServer binds the HTTP server to the fx lifecycle. fx.Run handles SIGINT/SIGTERM.
+func startServer(lc fx.Lifecycle, cfg app.Config, e *echo.Echo) {
 	srv := &http.Server{
 		Addr:         ":" + cfg.AppPort,
 		Handler:      e,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			go func() {
+				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+					log.Fatalf("listen: %v", err)
+				}
+			}()
+			log.Printf("RouterLens listening on :%s", cfg.AppPort)
+			return nil
+		},
+		OnStop: func(ctx context.Context) error { return srv.Shutdown(ctx) },
+	})
+}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %v", err)
-		}
-	}()
-	log.Printf("RouterLens listening on :%s", cfg.AppPort)
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+// migrateAndExit is the non-Fx path for `-migrate-only`.
+func migrateAndExit() error {
+	cfg, err := app.Load()
+	if err != nil {
+		return err
+	}
+	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	return postgres.Migrate(context.Background(), pool)
 }
 ```
 

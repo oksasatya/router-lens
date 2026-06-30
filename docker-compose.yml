@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: routerlens
+      POSTGRES_PASSWORD: routerlens
+      POSTGRES_DB: routerlens
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routerlens"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      APP_PORT: "8080"
+      DATABASE_URL: postgres://routerlens:routerlens@postgres:5432/routerlens?sslmode=disable
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-dev}
+      COOKIE_CROSS_SITE: "false"
+      MAX_BACKDATE_DAYS: "7"
+      RETENTION_DAYS: "0"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

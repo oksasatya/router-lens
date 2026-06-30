@@ -4,7 +4,7 @@
 
 **Goal:** A user can complete first-run setup (create the one admin, race-safe), log in over an httpOnly session cookie, read `GET /auth/me`, and log out — all localized (EN/ID) and validated.
 
-**Architecture:** Builds on Plan 01 (server, response/i18n, config, migrations) + Plan 02 (security, validator). Adds the `user` domain (User + Session + repo interfaces), Postgres repositories, auth use cases, a session middleware, and the setup/auth HTTP handlers, wired manually in `cmd/server/main.go`.
+**Architecture:** Builds on Plan 01 (server, response/i18n, config, migrations) + Plan 02 (security, validator). Adds the `user` domain (User + Session + repo interfaces), Postgres repositories, auth use cases, a session middleware, and the setup/auth HTTP handlers, wired via Uber Fx providers + a route-registration invoke in `cmd/server/main.go`.
 
 **Tech Stack:** Go 1.26, Echo v4, pgx/v5, the Plan 02 `security`/`validator` packages, `shared/response`/`errors`/`i18n`.
 
@@ -13,9 +13,9 @@
 Inherits Plan 01 + 02 Global Constraints (module `router-lens`, hexagonal layering, Sonar block, golang-expert hub, verification routine). Plan-specific:
 
 - **Auth model (per CLAUDE.md decisions 2, 5, 13):** DB-backed session; the cookie holds an opaque random token, the server stores only `sha256(token)`. `HttpOnly` always, `Secure` when `cfg.IsProduction()`, `SameSite=Lax` (or `None` when `cfg.CookieCrossSite`). **No CSRF token** (SameSite=Lax + no state change on GET). Ingestion stays Bearer API key (Plan 05) — not touched here.
-- **First-run setup is race-safe:** the admin is created via a conditional insert (`INSERT … SELECT … WHERE NOT EXISTS (SELECT 1 FROM users)`) + the `users.email` unique constraint. Locked (`403 setup_locked`) once any user exists.
-- **Login leaks nothing:** unknown email and wrong password both return the same `401 invalid_credentials`.
-- **i18n:** new error codes (`invalid_credentials`, `setup_locked`) are added to the `i18n` catalog (EN + ID). Validation errors are already localized by the Plan 02 validator.
+- **First-run setup is race-safe:** the admin is created via a conditional insert (`INSERT … SELECT … WHERE NOT EXISTS (SELECT 1 FROM users)`) + the `users.email` unique constraint. Locked (`403 auth.setup_locked`) once any user exists.
+- **Login leaks nothing:** unknown email and wrong password both return the same `401 auth.invalid_credentials`.
+- **i18n:** new namespaced error codes (`auth.invalid_credentials`, `auth.setup_locked`) + their `i18n` consts are added to the catalog (EN + ID), per the CLAUDE.md "Error codes" convention. Validation errors are already localized by the Plan 02 validator.
 - **TDD verdicts:** domain `Session.IsExpired` + use cases (Setup/Login/Logout) + session middleware = **YES** (in-memory fake repos). Postgres repositories = **integration tests** gated on `TEST_DATABASE_URL` (skip when unset). Handlers/wiring = **NO** (verify via the Task 7 e2e curl flow).
 
 ---
@@ -401,11 +401,19 @@ git commit -m "feat: postgres user and session repositories (race-safe admin ins
 
 - [ ] **Step 1: Add the new i18n codes**
 
-Edit `internal/shared/i18n/i18n.go` — add to the `catalog` map:
+Edit `internal/shared/i18n/i18n.go` — add the namespaced `auth.*` code constants and a catalog section (per the CLAUDE.md "Error codes" convention: domain codes are namespaced + declared as consts):
 
 ```go
-	"invalid_credentials": {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
-	"setup_locked":        {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
+// add to the const block:
+const (
+	CodeAuthInvalidCredentials = "auth.invalid_credentials"
+	CodeAuthSetupLocked        = "auth.setup_locked"
+)
+
+// add a section to the catalog map:
+	// --- auth ---
+	CodeAuthInvalidCredentials: {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
+	CodeAuthSetupLocked:        {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -418,6 +426,7 @@ import (
 	"testing"
 
 	apperrors "router-lens/internal/shared/errors"
+	"router-lens/internal/shared/i18n"
 	"router-lens/internal/shared/security"
 	"router-lens/internal/domain/user"
 )
@@ -467,7 +476,7 @@ func TestAuthService(t *testing.T) {
 		}
 		err := svc.Setup(ctx, "c@d.com", "password123", "Two")
 		ae, ok := apperrors.As(err)
-		if !ok || ae.Code != "setup_locked" {
+		if !ok || ae.Code != i18n.CodeAuthSetupLocked {
 			t.Fatalf("second setup should be locked, got %v", err)
 		}
 	})
@@ -497,7 +506,7 @@ func TestAuthService(t *testing.T) {
 		for _, c := range []struct{ email, pw string }{{"a@b.com", "wrong"}, {"nobody@x.com", "password123"}} {
 			_, err := svc.Login(ctx, c.email, c.pw, "", "")
 			ae, ok := apperrors.As(err)
-			if !ok || ae.Code != "invalid_credentials" {
+			if !ok || ae.Code != i18n.CodeAuthInvalidCredentials {
 				t.Fatalf("expected invalid_credentials for %v, got %v", c, err)
 			}
 		}
@@ -524,15 +533,11 @@ import (
 
 	"router-lens/internal/domain/user"
 	apperrors "router-lens/internal/shared/errors"
+	"router-lens/internal/shared/i18n"
 	"router-lens/internal/shared/security"
 )
 
 const SessionTTL = 7 * 24 * time.Hour
-
-const (
-	codeInvalidCredentials = "invalid_credentials"
-	codeSetupLocked        = "setup_locked"
-)
 
 type Service struct {
 	users    user.UserRepository
@@ -559,7 +564,7 @@ func (s *Service) Setup(ctx context.Context, email, password, name string) error
 		return err
 	}
 	if !created {
-		return apperrors.New(apperrors.KindForbidden, codeSetupLocked, "setup already completed")
+		return apperrors.New(apperrors.KindForbidden, i18n.CodeAuthSetupLocked, "setup already completed")
 	}
 	return nil
 }
@@ -603,7 +608,7 @@ func (s *Service) Logout(ctx context.Context, tokenHash string) error {
 }
 
 func (s *Service) invalidCredentials() error {
-	return apperrors.New(apperrors.KindUnauthorized, codeInvalidCredentials, "invalid email or password")
+	return apperrors.New(apperrors.KindUnauthorized, i18n.CodeAuthInvalidCredentials, "invalid email or password")
 }
 ```
 
@@ -948,81 +953,53 @@ func bindAndValidate(c echo.Context, v *validator.Validator, dst any) error {
 }
 ```
 
-- [ ] **Step 2: Update `cmd/server/main.go` to wire auth**
+- [ ] **Step 2: Wire auth into the Fx app (`cmd/server/main.go`)**
 
-Replace the body of `run(...)` after the server is built so it wires repositories, the validator, the auth service, the handler, and the session middleware. The full `run` becomes:
+Plan 01 built the Fx app. Extend its `fx.New(...)` with the auth providers and a route-registration invoke — the existing `app.Load` / `providePool` / `infrahttp.NewServer` / `runMigrations` / `startServer` stay. The `fx.New(...)` in `main()` becomes:
 
 ```go
-func run(migrateOnly bool) error {
-	cfg, err := app.Load()
-	if err != nil {
-		return err
-	}
+	fx.New(
+		fx.Provide(
+			app.Load,
+			providePool,
+			infrahttp.NewServer,
+			validator.New, // () -> (*validator.Validator, error)
+			fx.Annotate(postgres.NewUserRepository, fx.As(new(user.UserRepository))),
+			fx.Annotate(postgres.NewSessionRepository, fx.As(new(user.SessionRepository))),
+			auth.NewService,         // (user.UserRepository, user.SessionRepository) -> *auth.Service
+			handler.NewAuthHandler,  // (*auth.Service, *validator.Validator, app.Config) -> *AuthHandler
+		),
+		fx.Invoke(runMigrations),
+		fx.Invoke(registerAuthRoutes),
+		fx.Invoke(startServer),
+	).Run()
+```
 
-	ctx := context.Background()
-	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
+Add the route-registration invoke (runs during startup, before the server's `OnStart` listens):
 
-	if err := postgres.Migrate(ctx, pool); err != nil {
-		return err
-	}
-	if migrateOnly {
-		log.Println("migrations applied")
-		return nil
-	}
-
-	// --- manual DI (composition root) ---
-	valid, err := validator.New()
-	if err != nil {
-		return err
-	}
-	userRepo := postgres.NewUserRepository(pool)
-	sessionRepo := postgres.NewSessionRepository(pool)
-	authSvc := auth.NewService(userRepo, sessionRepo)
-	authHandler := handler.NewAuthHandler(authSvc, valid, cfg)
-	sessionMW := middleware.Session(sessionRepo, userRepo)
-
-	e := infrahttp.NewServer(cfg)
+```go
+// registerAuthRoutes mounts the setup/auth routes on the shared Echo, behind
+// the session middleware where required.
+func registerAuthRoutes(e *echo.Echo, h *handler.AuthHandler, sessions user.SessionRepository, users user.UserRepository) {
 	api := e.Group("/api/v1")
-	authHandler.Register(api, sessionMW)
-
-	srv := &http.Server{
-		Addr:         ":" + cfg.AppPort,
-		Handler:      e,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %v", err)
-		}
-	}()
-	log.Printf("RouterLens listening on :%s", cfg.AppPort)
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+	h.Register(api, middleware.Session(sessions, users))
 }
 ```
 
-Add the new imports to `cmd/server/main.go`:
+Add the new imports to `cmd/server/main.go` (`go.uber.org/fx` is already imported from Plan 01):
 
 ```go
 	"router-lens/internal/application/auth"
+	"router-lens/internal/domain/user"
 	"router-lens/internal/infrastructure/http/handler"
 	"router-lens/internal/infrastructure/http/middleware"
 	"router-lens/internal/shared/validator"
 ```
 
-(Routes register onto the same Echo via a `/api/v1` group; the SPA `/*` fallback from `NewServer` still serves non-API paths — Echo matches the more specific `/api/v1/...` routes first.)
+Notes:
+- `fx.Annotate(postgres.NewUserRepository, fx.As(new(user.UserRepository)))` exposes the concrete `*postgres.UserRepository` as the `user.UserRepository` interface that `auth.NewService` and `registerAuthRoutes` consume — constructors keep returning concrete types (idiomatic), Fx adapts them. Same for the session repository.
+- `validator.New` returns `(*validator.Validator, error)`; Fx surfaces the error as a startup failure.
+- Routes register on the same Echo via a `/api/v1` group; the SPA `/*` fallback from `NewServer` still serves non-API paths (Echo matches the more specific `/api/v1/...` routes first). The invoke runs before `startServer`'s `OnStart`, so every route is live when the server listens.
 
 - [ ] **Step 3: Build**
 
@@ -1059,7 +1036,7 @@ curl -fsS -X POST http://localhost:8080/api/v1/setup \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@example.com","password":"password123","name":"Admin"}'
 ```
-Expected: `201` with `{"data":{"created":true},...}`. A second identical call returns `403` with `error.code = "setup_locked"`.
+Expected: `201` with `{"data":{"created":true},...}`. A second identical call returns `403` with `error.code = "auth.setup_locked"`.
 
 - [ ] **Step 4: Login sets the cookie; /me works; logout clears it**
 
@@ -1071,7 +1048,7 @@ curl -fsS -i -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
 curl -fsS -b cookies.txt http://localhost:8080/api/v1/auth/me
 curl -fsS -b cookies.txt -X POST http://localhost:8080/api/v1/auth/logout
 ```
-Expected: login sets a `Set-Cookie: rl_session=…; HttpOnly`; `/me` returns the admin's `userDTO`; logout returns `204` and clears the cookie. A wrong password returns `401 invalid_credentials`. Sending `Accept-Language: id` returns the Indonesian message.
+Expected: login sets a `Set-Cookie: rl_session=…; HttpOnly`; `/me` returns the admin's `userDTO`; logout returns `204` and clears the cookie. A wrong password returns `401 auth.invalid_credentials`. Sending `Accept-Language: id` returns the Indonesian message.
 
 - [ ] **Step 5: Tear down + commit any fixups**
 

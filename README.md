@@ -104,8 +104,7 @@ The deep dives live in [`CLAUDE.md`](./CLAUDE.md) (project rules), [`CONTEXT.md`
 ```bash
 git clone https://github.com/oksasatya/router-lens.git
 cd router-lens
-cp .env.example .env        # edit the secrets
-docker compose up --build
+docker compose up --build   # set SESSION_SECRET in your shell env for a real deploy
 ```
 
 Open <http://localhost:8080>.
@@ -151,7 +150,7 @@ Notes:
 
 | Layer | Choice |
 |-------|--------|
-| Backend | Go 1.26 + Echo v4 |
+| Backend | Go 1.26 + Echo v4 + Uber Fx (DI) |
 | Frontend | React + TanStack Start (TypeScript), shadcn/ui, TanStack Query, Recharts |
 | Database | PostgreSQL — the only dependency |
 | Auth | DB-backed session in an httpOnly cookie |
@@ -162,16 +161,18 @@ Notes:
 ## Project structure
 
 ```
-cmd/server/         main.go — manual DI wiring; serves API + embedded UI
-internal/
-  app/              bootstrap, config
-  domain/           entities, value objects, repository interfaces, cost calculator
-  application/      use cases (zero HTTP knowledge)
-  infrastructure/   postgres repositories; echo http (handlers, middleware, router)
-  shared/           response, errors, pagination, validator, security, datetime, csv
-  web/              embed of the built frontend + SPA fallback
-migrations/         NNN_*.up.sql / NNN_*.down.sql
-apps/web/           TanStack Start frontend (built into the binary)
+apps/backend/          Go module `router-lens` (Uber Fx DI)
+  cmd/server/main.go   Fx app; serves API + embedded UI
+  internal/
+    app/               config
+    domain/            entities, value objects, repository interfaces, cost calculator
+    application/       use cases (zero HTTP knowledge)
+    infrastructure/    postgres repositories; echo http (handlers, middleware, router)
+    shared/            response, errors, i18n, pagination, validator, security, datetime, csv
+    web/               embed of the built frontend + SPA fallback
+  migrations/          NNN_*.sql (goose: -- +goose Up / -- +goose Down)
+apps/frontend/         TanStack Start frontend (built into the binary)
+docker-compose.yml, Makefile, docs/
 ```
 
 ---
@@ -181,27 +182,28 @@ apps/web/           TanStack Start frontend (built into the binary)
 Production is one binary. In dev you can split the pieces for hot reload:
 
 ```bash
-docker compose up postgres                 # database only
-make migrate                               # apply migrations
-make dev                                   # Go API on :8080
-cd apps/web && pnpm install && pnpm dev     # Vite dev server, proxies /api to the Go API
+cp apps/backend/.env.example apps/backend/.env   # local backend env
+docker compose up postgres                       # database only
+make migrate                                     # apply migrations
+make dev                                         # Go API on :8080 (cd apps/backend)
+make web                                          # Vite dev server, proxies /api to the Go API
 ```
 
-Common commands:
+Common commands (run from the repo root):
 
 ```bash
 make migrate            # apply SQL migrations
 make create-admin       # CLI fallback for the first admin
-go test -race -cover ./...
-golangci-lint run
-cd apps/web && pnpm build   # produce the static frontend the binary embeds
+make test               # go test -race -cover ./... (in apps/backend)
+make lint               # golangci-lint run
+make web-build          # produce the static frontend the binary embeds
 ```
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env`:
+Copy `apps/backend/.env.example` to `apps/backend/.env` (for local `make dev`; Docker Compose sets these directly):
 
 | Variable | Purpose |
 |----------|---------|

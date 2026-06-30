@@ -60,7 +60,7 @@ Each plan produces working, testable software on its own. Plans 04–08 are scop
 Nothing built yet. The plans contain complete, runnable code for every step; executing them produces the code.
 
 - **Backend packages:** 0 of (config, shared/{response,errors,i18n,pagination,validator,security,datetime,csv}, domain/{user,project,apikey,event,pricing}, application/*, infrastructure/{postgres,http}).
-- **Frontend:** 0 (apps/web not scaffolded).
+- **Frontend:** 0 (apps/frontend not scaffolded).
 - **Migrations:** 6 defined in Plan 01, 0 applied.
 - **Tests:** defined across Plans 01–03, 0 run.
 
@@ -83,7 +83,7 @@ Nothing built yet. The plans contain complete, runnable code for every step; exe
 
 - **Toolchain:** Go 1.26, Docker + Docker Compose, Node + pnpm (frontend, Plan 07).
 - **`git init`** — owner runs this (the workspace is not yet a git repo; plans commit per task).
-- **Go dependencies** (`go get`, listed in the plans): Echo v4, pgx/v5, goose v3, godotenv, google/uuid, x/crypto, shopspring/decimal, go-playground validator/v10 + universal-translator + locales.
+- **Go dependencies** (`go get`, listed in the plans): Echo v4, pgx/v5, goose v3, godotenv, google/uuid, **go.uber.org/fx**, x/crypto, shopspring/decimal, go-playground validator/v10 + universal-translator + locales.
 - **`.env`** from `.env.example` (Plan 01 Task 1).
 
 ---

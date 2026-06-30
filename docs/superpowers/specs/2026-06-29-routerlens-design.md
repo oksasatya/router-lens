@@ -53,7 +53,7 @@ call; entity `llm_events`), **Request Logs** (the UI view of Events, not a separ
 Hexagonal + DDD + Clean Architecture. Dependencies point **inward only**:
 
 ```
-cmd/server (main.go — manual constructor-injection wiring; no DI framework)
+cmd/server (main.go — Uber Fx: per-module providers + fx.Lifecycle hooks)
   → infrastructure  (postgres repo impls; echo http: handlers, middleware, router)
     → application   (use cases: orchestrate domain + ports; no HTTP knowledge)
       → domain      (entities, value objects, repository INTERFACES, domain rules, cost calculator)
@@ -64,49 +64,50 @@ cmd/server (main.go — manual constructor-injection wiring; no DI framework)
 - Repository interfaces are defined in `domain/<aggregate>/repository.go`; implementations live in `infrastructure/postgres/`.
 - Handlers only parse → call use case → write response. No business logic, no DB access in handlers.
 - Use cases never touch `echo.Context` or HTTP status codes; they take/return domain types or DTOs.
-- Wiring is manual in `cmd/server/main.go`.
+- Wiring uses **Uber Fx** in `cmd/server/main.go`: per-module provider constructors + `fx.Lifecycle` (`OnStart`/`OnStop`) for server start/stop and pool cleanup; `fx.Run` handles signals. Constructors stay plain so they remain unit-testable without Fx.
 
 ### Folder layout
 
 ```
-cmd/server/main.go
-internal/
-  app/            bootstrap.go, config.go
-  domain/
-    user/         entity.go, repository.go
-    project/      entity.go, repository.go
-    apikey/       entity.go, repository.go
-    event/        entity.go, value_object.go, repository.go
-    pricing/      entity.go, repository.go, calculator.go
-  application/
-    auth/         setup_usecase.go, login_usecase.go, logout_usecase.go, me_usecase.go
-    project/      create_, list_, get_, update_, delete_project_usecase.go
-    apikey/       create_, list_, revoke_apikey_usecase.go
-    event/        ingest_event_usecase.go, list_event_usecase.go, get_event_usecase.go,
-                  export_event_usecase.go, analytics_usecase.go
-    pricing/      list_, upsert_, update_, delete_pricing_usecase.go, calculate_cost.go
-  infrastructure/
-    postgres/     db.go, user_repository.go, project_repository.go, apikey_repository.go,
-                  event_repository.go, pricing_repository.go
-    http/         server.go, router.go,
-                  middleware/  session_middleware.go, apikey_middleware.go,
-                               error_middleware.go, lang_middleware.go
-                  handler/     setup_handler.go, auth_handler.go, project_handler.go,
-                               apikey_handler.go, event_handler.go, analytics_handler.go,
-                               pricing_handler.go
-  shared/
-    response/     response.go
-    errors/       errors.go
-    pagination/   offset.go, keyset.go
-    i18n/         i18n.go (Lang, Resolve, error-code catalog)
-    validator/    validator.go (go-playground v10 + EN/ID translator)
-    security/     password.go, token.go (session + API key), cookie.go
-    datetime/     range.go
-    csv/          exporter.go
-    web/          embed.go (//go:embed the built frontend) + SPA fallback handler
-migrations/       NNN_<name>.up.sql / NNN_<name>.down.sql
-apps/web/         TanStack Start frontend (built to static, embedded into the Go binary)
-docker-compose.yml, .env.example, README.md, Makefile
+apps/backend/                  Go module `router-lens` (go.mod here; imports stay router-lens/internal/...)
+  cmd/server/main.go           Fx app entrypoint
+  go.mod, go.sum, .env.example, Dockerfile
+  internal/
+    app/          config.go (+ bootstrap)
+    domain/
+      user/         entity.go, repository.go
+      project/      entity.go, repository.go
+      apikey/       entity.go, repository.go
+      event/        entity.go, value_object.go, repository.go
+      pricing/      entity.go, repository.go, calculator.go
+    application/
+      auth/         setup_usecase.go, login_usecase.go, logout_usecase.go (me via handler)
+      project/      create_, list_, get_, update_, delete_project_usecase.go
+      apikey/       create_, list_, revoke_apikey_usecase.go
+      event/        ingest_, list_, get_, export_event_usecase.go, analytics_usecase.go
+      pricing/      list_, upsert_, update_, delete_pricing_usecase.go, calculate_cost.go
+    infrastructure/
+      postgres/     db.go, migrate.go, user_repository.go, project_repository.go, apikey_repository.go,
+                    event_repository.go, pricing_repository.go
+      http/         server.go, router.go,
+                    middleware/  session_middleware.go, apikey_middleware.go,
+                                 error_middleware.go, lang_middleware.go
+                    handler/     setup_handler.go, auth_handler.go, project_handler.go,
+                                 apikey_handler.go, event_handler.go, analytics_handler.go,
+                                 pricing_handler.go
+    shared/
+      response/     response.go
+      errors/       errors.go
+      pagination/   offset.go, keyset.go
+      i18n/         i18n.go (Lang, Resolve, error-code catalog)
+      validator/    validator.go (go-playground v10 + EN/ID translator)
+      security/     password.go, token.go (session + API key), cookie.go
+      datetime/     range.go
+      csv/          exporter.go
+    web/            embed.go (//go:embed the built frontend) + SPA fallback handler
+  migrations/       NNN_<name>.sql (goose single-file: -- +goose Up / -- +goose Down)
+apps/frontend/      TanStack Start app (built to static, embedded into the Go binary)
+docker-compose.yml, Makefile, README.md, docs/
 ```
 
 ---

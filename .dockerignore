@@ -1,0 +1,11 @@
+.git
+docs
+apps/backend/bin
+node_modules
+apps/frontend/node_modules
+apps/frontend/dist
+.superpowers
+*.md
+.env
+.idea
+.impeccable
