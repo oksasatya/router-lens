@@ -44,6 +44,10 @@ const (
 	CodeUnauthorized = "unauthorized"
 	CodeForbidden    = "forbidden"
 	CodeNotFound     = "not_found"
+
+	// --- auth ---
+	CodeAuthInvalidCredentials = "auth.invalid_credentials"
+	CodeAuthSetupLocked        = "auth.setup_locked"
 )
 
 // catalog maps an error code to its localized messages.
@@ -54,7 +58,10 @@ var catalog = map[string]map[Lang]string{
 	CodeUnauthorized: {EN: "Authentication required", ID: "Perlu autentikasi"},
 	CodeForbidden:    {EN: "Access denied", ID: "Akses ditolak"},
 	CodeNotFound:     {EN: "Resource not found", ID: "Data tidak ditemukan"},
-	// --- feature domains append sections below: auth.*, project.*, apikey.*, event.*, pricing.* ---
+	// --- auth ---
+	CodeAuthInvalidCredentials: {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
+	CodeAuthSetupLocked:        {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
+	// --- feature domains append sections below: project.*, apikey.*, event.*, pricing.* ---
 }
 
 // Message returns the localized message for code, falling back to the default

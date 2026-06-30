@@ -13,8 +13,13 @@ import (
 	"go.uber.org/fx"
 
 	"router-lens/internal/app"
+	"router-lens/internal/application/auth"
+	"router-lens/internal/domain/user"
 	infrahttp "router-lens/internal/infrastructure/http"
+	"router-lens/internal/infrastructure/http/handler"
+	"router-lens/internal/infrastructure/http/middleware"
 	"router-lens/internal/infrastructure/postgres"
+	"router-lens/internal/shared/validator"
 )
 
 func main() {
@@ -33,9 +38,15 @@ func main() {
 			app.Load,            // () -> (app.Config, error)
 			providePool,         // (fx.Lifecycle, app.Config) -> (*pgxpool.Pool, error)
 			infrahttp.NewServer, // (app.Config) -> *echo.Echo
+			validator.New,       // () -> (*validator.Validator, error)
+			fx.Annotate(postgres.NewUserRepository, fx.As(new(user.UserRepository))),
+			fx.Annotate(postgres.NewSessionRepository, fx.As(new(user.SessionRepository))),
+			auth.NewService,        // (user.UserRepository, user.SessionRepository) -> *auth.Service
+			handler.NewAuthHandler, // (*auth.Service, *validator.Validator, app.Config) -> *AuthHandler
 		),
-		fx.Invoke(runMigrations), // runs during startup, before the server listens
-		fx.Invoke(startServer),   // binds the HTTP server to the lifecycle
+		fx.Invoke(runMigrations),
+		fx.Invoke(registerAuthRoutes),
+		fx.Invoke(startServer),
 	).Run()
 }
 
@@ -76,6 +87,13 @@ func startServer(lc fx.Lifecycle, cfg app.Config, e *echo.Echo) {
 		},
 		OnStop: func(ctx context.Context) error { return srv.Shutdown(ctx) },
 	})
+}
+
+// registerAuthRoutes mounts the setup/auth routes on the shared Echo, behind
+// the session middleware where required.
+func registerAuthRoutes(e *echo.Echo, h *handler.AuthHandler, sessions user.SessionRepository, users user.UserRepository) {
+	api := e.Group("/api/v1")
+	h.Register(api, middleware.Session(sessions, users))
 }
 
 // migrateAndExit is the non-Fx path for `-migrate-only`.
