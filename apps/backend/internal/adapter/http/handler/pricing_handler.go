@@ -5,10 +5,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	pricingapp "router-lens/internal/application/pricing"
-	"router-lens/internal/infrastructure/http/dto"
+	"router-lens/internal/adapter/http/dto"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/validator"
+	pricingapp "router-lens/internal/usecase/pricing"
 )
 
 // PricingHandler handles pricing rule CRUD endpoints.

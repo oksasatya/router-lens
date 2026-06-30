@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ type Config struct {
 	CookieCrossSite bool
 	MaxBackdateDays int
 	RetentionDays   int
+	LogLevel        string
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == envProduction }
@@ -40,6 +41,7 @@ func parse(get func(string) string) (Config, error) {
 		CookieCrossSite: get("COOKIE_CROSS_SITE") == "true",
 		MaxBackdateDays: atoiOr(get("MAX_BACKDATE_DAYS"), 7),
 		RetentionDays:   atoiOr(get("RETENTION_DAYS"), 0),
+		LogLevel:        orDefault(get("LOG_LEVEL"), "info"),
 	}
 	if cfg.DatabaseURL == "" || cfg.SessionSecret == "" {
 		return Config{}, fmt.Errorf("config: DATABASE_URL and SESSION_SECRET are required")

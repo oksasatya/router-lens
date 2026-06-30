@@ -5,22 +5,22 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"router-lens/internal/app"
-	"router-lens/internal/application/auth"
-	"router-lens/internal/infrastructure/http/dto"
-	mw "router-lens/internal/infrastructure/http/middleware"
+	"router-lens/internal/adapter/http/dto"
+	mw "router-lens/internal/adapter/http/middleware"
+	"router-lens/internal/platform/config"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/security"
 	"router-lens/internal/shared/validator"
+	"router-lens/internal/usecase/auth"
 )
 
 type AuthHandler struct {
 	svc *auth.Service
 	v   *validator.Validator
-	cfg app.Config
+	cfg config.Config
 }
 
-func NewAuthHandler(svc *auth.Service, v *validator.Validator, cfg app.Config) *AuthHandler {
+func NewAuthHandler(svc *auth.Service, v *validator.Validator, cfg config.Config) *AuthHandler {
 	return &AuthHandler{svc: svc, v: v, cfg: cfg}
 }
 

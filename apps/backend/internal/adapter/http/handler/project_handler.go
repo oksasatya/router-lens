@@ -5,12 +5,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	projectapp "router-lens/internal/application/project"
-	"router-lens/internal/infrastructure/http/dto"
-	mw "router-lens/internal/infrastructure/http/middleware"
+	"router-lens/internal/adapter/http/dto"
+	mw "router-lens/internal/adapter/http/middleware"
 	"router-lens/internal/shared/pagination"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/validator"
+	projectapp "router-lens/internal/usecase/project"
 )
 
 type ProjectHandler struct {

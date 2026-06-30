@@ -1,36 +1,39 @@
 // Package bootstrap is the application composition root. It wires configuration,
-// infrastructure, and the per-bounded-context modules into a runnable fx
-// application. Nothing imports bootstrap except cmd/server, so it may import
-// every other package (app, application, domain, infrastructure) without
-// creating an import cycle — app.Config is consumed by the adapters, so the
-// wiring cannot live in package app.
+// adapters, and the per-bounded-context modules into a runnable fx application.
+// Nothing imports bootstrap except cmd/server, so it may import every other
+// package (config, usecase, domain, adapter) without creating an import cycle —
+// config.Config is consumed by the adapters, so the wiring cannot live in the
+// platform/config package.
 package bootstrap
 
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
-	"time"
+	"os"
+	"sort"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 
-	"router-lens/internal/app"
-	apikeyapp "router-lens/internal/application/apikey"
-	"router-lens/internal/application/auth"
-	pricingapp "router-lens/internal/application/pricing"
-	projectapp "router-lens/internal/application/project"
+	httpserver "router-lens/internal/adapter/http"
+	"router-lens/internal/adapter/http/handler"
+	"router-lens/internal/adapter/http/middleware"
+	"router-lens/internal/adapter/postgres"
 	apikey "router-lens/internal/domain/apikey"
 	pricing "router-lens/internal/domain/pricing"
 	project "router-lens/internal/domain/project"
 	"router-lens/internal/domain/user"
-	infrahttp "router-lens/internal/infrastructure/http"
-	"router-lens/internal/infrastructure/http/handler"
-	"router-lens/internal/infrastructure/http/middleware"
-	"router-lens/internal/infrastructure/postgres"
+	"router-lens/internal/platform/config"
+	"router-lens/internal/platform/logging"
 	"router-lens/internal/shared/validator"
+	apikeyapp "router-lens/internal/usecase/apikey"
+	"router-lens/internal/usecase/auth"
+	pricingapp "router-lens/internal/usecase/pricing"
+	projectapp "router-lens/internal/usecase/project"
 )
 
 const apiBasePath = "/api/v1"
@@ -46,6 +49,14 @@ func New() *fx.App {
 // have completed and every route is mounted before the listener starts).
 func options() fx.Option {
 	return fx.Options(
+		// Route Fx's own startup logging through slog. UseLogLevel(DEBUG) puts the
+		// verbose provide/invoke events at DEBUG, so they're silent at the default
+		// INFO level and only appear when LOG_LEVEL=debug. Errors still log at ERROR.
+		fx.WithLogger(func(l *slog.Logger) fxevent.Logger {
+			fxlog := &fxevent.SlogLogger{Logger: l}
+			fxlog.UseLogLevel(slog.LevelDebug)
+			return fxlog
+		}),
 		coreModule,
 		authModule,
 		projectModule,
@@ -55,17 +66,23 @@ func options() fx.Option {
 	)
 }
 
-// coreModule provides config, the pgx pool, the Echo server, and the validator,
-// and runs migrations before anything else starts.
+// coreModule provides config, the logger, the pgx pool, the Echo server, and
+// the validator, and runs migrations before anything else starts.
 var coreModule = fx.Module("core",
 	fx.Provide(
-		app.Load,
+		config.Load,
+		provideLogger,
 		providePool,
-		infrahttp.NewServer,
+		httpserver.NewServer,
 		validator.New,
 	),
 	fx.Invoke(runMigrations),
 )
+
+// provideLogger builds the structured logger and installs it as slog's default.
+func provideLogger(cfg config.Config) *slog.Logger {
+	return logging.New(cfg.IsProduction(), cfg.LogLevel)
+}
 
 var authModule = fx.Module("auth",
 	fx.Provide(
@@ -106,7 +123,7 @@ var pricingModule = fx.Module("pricing",
 )
 
 // providePool opens the pool and ties its lifetime to the fx lifecycle.
-func providePool(lc fx.Lifecycle, cfg app.Config) (*pgxpool.Pool, error) {
+func providePool(lc fx.Lifecycle, cfg config.Config) (*pgxpool.Pool, error) {
 	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -116,32 +133,49 @@ func providePool(lc fx.Lifecycle, cfg app.Config) (*pgxpool.Pool, error) {
 }
 
 // runMigrations applies migrations during startup, before the server listens.
-func runMigrations(pool *pgxpool.Pool) error {
+// The *slog.Logger dependency forces the logger to be built first.
+func runMigrations(logger *slog.Logger, pool *pgxpool.Pool) error {
+	logger.Info("applying database migrations")
 	return postgres.Migrate(context.Background(), pool)
 }
 
-// startServer binds the HTTP server to the fx lifecycle. fx.Run handles SIGINT/SIGTERM.
-func startServer(lc fx.Lifecycle, cfg app.Config, e *echo.Echo) {
-	srv := &http.Server{
-		Addr:              ":" + cfg.AppPort,
-		Handler:           e,
-		ReadTimeout:       15 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
+// startServer drives Echo's own server through the fx lifecycle: e.Start (which
+// prints the Echo banner and reuses e.Server's hardened timeouts) on start, and
+// e.Shutdown for a graceful drain on stop. fx.Run handles SIGINT/SIGTERM; fx is
+// the DI + lifecycle coordinator, Echo owns the server.
+func startServer(lc fx.Lifecycle, cfg config.Config, e *echo.Echo, logger *slog.Logger) {
+	addr := ":" + cfg.AppPort
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
+			logRoutes(e, logger)
 			go func() {
-				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Fatalf("listen: %v", err)
+				// e.Start blocks until shutdown; ErrServerClosed is the clean stop.
+				if err := e.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+					logger.Error("http server failed", "error", err)
+					os.Exit(1)
 				}
 			}()
-			log.Printf("RouterLens listening on :%s", cfg.AppPort)
+			logger.Info("server listening", "addr", addr, "env", cfg.AppEnv)
 			return nil
 		},
-		OnStop: func(ctx context.Context) error { return srv.Shutdown(ctx) },
+		OnStop: func(ctx context.Context) error { return e.Shutdown(ctx) },
 	})
+}
+
+// logRoutes prints the registered route table (method + path) at startup, sorted
+// by path for stable output. INFO level so it shows without the verbose Fx graph.
+func logRoutes(e *echo.Echo, logger *slog.Logger) {
+	routes := e.Routes()
+	sort.Slice(routes, func(i, j int) bool {
+		if routes[i].Path == routes[j].Path {
+			return routes[i].Method < routes[j].Method
+		}
+		return routes[i].Path < routes[j].Path
+	})
+	logger.Info("routes registered", "count", len(routes))
+	for _, r := range routes {
+		logger.Info("route", "method", r.Method, "path", r.Path)
+	}
 }
 
 // provideSessionMiddleware builds the one shared session-auth middleware.
@@ -173,10 +207,11 @@ func registerPricingRoutes(e *echo.Echo, h *handler.PricingHandler, session echo
 // MigrateAndExit is the non-Fx path for the `-migrate-only` flag: load config,
 // open a pool, apply migrations, and return.
 func MigrateAndExit() error {
-	cfg, err := app.Load()
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
+	logging.New(cfg.IsProduction(), cfg.LogLevel)
 	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return err

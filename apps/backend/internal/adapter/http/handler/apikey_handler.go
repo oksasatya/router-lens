@@ -5,10 +5,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	apikeyapp "router-lens/internal/application/apikey"
-	"router-lens/internal/infrastructure/http/dto"
+	"router-lens/internal/adapter/http/dto"
 	"router-lens/internal/shared/response"
 	"router-lens/internal/shared/validator"
+	apikeyapp "router-lens/internal/usecase/apikey"
 )
 
 type APIKeyHandler struct {

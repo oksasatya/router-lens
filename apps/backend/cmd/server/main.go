@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"router-lens/internal/bootstrap"
+	"router-lens/internal/platform/bootstrap"
 )
 
 func main() {
