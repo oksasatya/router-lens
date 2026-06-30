@@ -1,8 +1,9 @@
 <div align="center">
 
-<img src="apps/frontend/public/logo.webp" width="96" alt="RouterLens logo" />
 
-# RouterLens
+<h1 align="center">
+  <img src="apps/frontend/public/logo-router-lens.png" width="50%" alt="RouterLens logo" />
+</h1>
 
 ### Self-hosted observability for LLM routers and AI coding agents.
 
@@ -95,7 +96,7 @@ binary. One process, one port. Postgres is the only thing you have to run alongs
                   └─────────────┘
 ```
 
-Backend is hexagonal + DDD + Clean Architecture (`domain ← application ← infrastructure ← cmd`).
+Backend is hexagonal + DDD + Clean Architecture (`domain ← usecase ← adapter ← platform ← cmd`).
 The deep dives live in [`CLAUDE.md`](./CLAUDE.md) (project rules), [`CONTEXT.md`](./CONTEXT.md)
 (domain glossary), and [the design spec](./docs/superpowers/specs/2026-06-29-routerlens-design.md).
 
@@ -164,16 +165,16 @@ Notes:
 
 ```
 apps/backend/          Go module `router-lens` (Uber Fx DI)
-  cmd/server/main.go   Fx app; serves API + embedded UI
+  cmd/server/main.go   thin launcher → platform/bootstrap.New().Run()
   internal/
-    app/               config
     domain/            entities, value objects, repository interfaces, cost calculator
-    application/       use cases (zero HTTP knowledge)
-    infrastructure/    postgres repositories; echo http (handlers, middleware, router)
+    usecase/           use cases (zero HTTP knowledge)
+    adapter/           postgres repositories; echo http (handlers, middleware, dto)
+    platform/          config (env) · logging (slog + tint) · bootstrap (fx composition root)
     shared/            response, errors, i18n, pagination, validator, security, datetime, csv
     web/               embed of the built frontend + SPA fallback
   migrations/          NNN_*.sql (goose: -- +goose Up / -- +goose Down)
-apps/frontend/         TanStack Start frontend (built into the binary)
+apps/frontend/         Vite + React SPA (built into the binary)
 docker-compose.yml, Makefile, docs/
 ```
 
