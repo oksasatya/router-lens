@@ -216,7 +216,7 @@ func TestTokens(t *testing.T) {
 		if a == b {
 			t.Fatal("tokens should be unique")
 		}
-		if HashToken(a) != HashToken(a) {
+		if h := HashToken(a); h != HashToken(a) {
 			t.Fatal("hash should be deterministic")
 		}
 		if HashToken(a) == a {
