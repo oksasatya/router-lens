@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "RouterLens",
+    "tagline": "Observability for LLM routers"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "logs": "Logs",
+    "projects": "Projects",
+    "apiKeys": "API Keys",
+    "pricing": "Pricing",
+    "settings": "Settings"
+  },
+  "common": {
+    "theme": "Theme",
+    "language": "Language",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "signIn": "Sign in",
+    "comingSoon": "Coming soon",
+    "menu": "Menu"
+  }
+}

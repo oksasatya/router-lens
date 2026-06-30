@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "RouterLens",
+    "tagline": "Observabilitas untuk LLM router"
+  },
+  "nav": {
+    "dashboard": "Dasbor",
+    "logs": "Log",
+    "projects": "Proyek",
+    "apiKeys": "Kunci API",
+    "pricing": "Harga",
+    "settings": "Pengaturan"
+  },
+  "common": {
+    "theme": "Tema",
+    "language": "Bahasa",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem",
+    "signIn": "Masuk",
+    "comingSoon": "Segera hadir",
+    "menu": "Menu"
+  }
+}

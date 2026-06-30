@@ -9,6 +9,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RouterLens</title>
     <meta name="description" content="Self-hosted observability for LLM routers and AI coding agents." />
+    <script>
+      // Apply the theme class before first paint (no FOUC). Dark is the default.
+      (function () {
+        try {
+          var t = localStorage.getItem("theme") || "dark";
+          var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

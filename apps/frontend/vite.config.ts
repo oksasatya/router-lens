@@ -2,12 +2,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import path from "node:path";
 
-// The TanStack Router plugin is added in the routing step (it needs src/routes/
-// to generate routeTree.gen.ts). Verify dev + proxy work first.
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // tanstackRouter MUST come before react(); it generates src/routeTree.gen.ts.
+  plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
   server: {
     port: 5173,
