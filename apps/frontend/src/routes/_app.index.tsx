@@ -40,7 +40,7 @@ function DashboardRoute() {
   const projectColumns: DataTableColumn<Project>[] = [
     {
       key: "name",
-      header: t("projects.columns.name"),
+      header: t("projects.fields.name"),
       cell: (p) => (
         <Link to="/projects/$projectId" params={{ projectId: p.id }} className="font-medium hover:underline">
           {p.name}
