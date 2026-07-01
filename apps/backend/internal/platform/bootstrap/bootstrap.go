@@ -24,6 +24,7 @@ import (
 	"router-lens/internal/adapter/http/dto"
 	"router-lens/internal/adapter/http/handler"
 	"router-lens/internal/adapter/http/middleware"
+	"router-lens/internal/adapter/openrouter"
 	"router-lens/internal/adapter/postgres"
 	apikey "router-lens/internal/domain/apikey"
 	event "router-lens/internal/domain/event"
@@ -122,6 +123,7 @@ var apiKeyModule = fx.Module("apikey",
 var pricingModule = fx.Module("pricing",
 	fx.Provide(
 		fx.Annotate(postgres.NewPricingRepository, fx.As(new(pricing.PricingRepository))),
+		fx.Annotate(openrouter.NewClient, fx.As(new(pricingapp.SuggestionSource))),
 		pricingapp.NewService,
 		handler.NewPricingHandler,
 	),

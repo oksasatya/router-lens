@@ -14,14 +14,15 @@ const (
 )
 
 type Config struct {
-	AppEnv          string
-	AppPort         string
-	DatabaseURL     string
-	SessionSecret   string
-	CookieCrossSite bool
-	MaxBackdateDays int
-	RetentionDays   int
-	LogLevel        string
+	AppEnv                    string
+	AppPort                   string
+	DatabaseURL               string
+	SessionSecret             string
+	CookieCrossSite           bool
+	MaxBackdateDays           int
+	RetentionDays             int
+	LogLevel                  string
+	PricingSuggestionsEnabled bool
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == envProduction }
@@ -34,14 +35,15 @@ func Load() (Config, error) {
 
 func parse(get func(string) string) (Config, error) {
 	cfg := Config{
-		AppEnv:          orDefault(get("APP_ENV"), "development"),
-		AppPort:         orDefault(get("APP_PORT"), defaultPort),
-		DatabaseURL:     get("DATABASE_URL"),
-		SessionSecret:   get("SESSION_SECRET"),
-		CookieCrossSite: get("COOKIE_CROSS_SITE") == "true",
-		MaxBackdateDays: atoiOr(get("MAX_BACKDATE_DAYS"), 7),
-		RetentionDays:   atoiOr(get("RETENTION_DAYS"), 0),
-		LogLevel:        orDefault(get("LOG_LEVEL"), "info"),
+		AppEnv:                    orDefault(get("APP_ENV"), "development"),
+		AppPort:                   orDefault(get("APP_PORT"), defaultPort),
+		DatabaseURL:               get("DATABASE_URL"),
+		SessionSecret:             get("SESSION_SECRET"),
+		CookieCrossSite:           get("COOKIE_CROSS_SITE") == "true",
+		MaxBackdateDays:           atoiOr(get("MAX_BACKDATE_DAYS"), 7),
+		RetentionDays:             atoiOr(get("RETENTION_DAYS"), 0),
+		LogLevel:                  orDefault(get("LOG_LEVEL"), "info"),
+		PricingSuggestionsEnabled: get("PRICING_SUGGESTIONS_ENABLED") != "false",
 	}
 	if cfg.DatabaseURL == "" || cfg.SessionSecret == "" {
 		return Config{}, fmt.Errorf("config: DATABASE_URL and SESSION_SECRET are required")

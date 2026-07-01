@@ -37,7 +37,7 @@ func (f *fakeRepo) FindByProviderModel(context.Context, string, string) (*pricin
 func TestUpsert(t *testing.T) {
 	t.Run("defaults currency to USD", func(t *testing.T) {
 		f := &fakeRepo{}
-		_, err := NewService(f).Upsert(context.Background(), Input{
+		_, err := NewService(f, nil).Upsert(context.Background(), Input{
 			Provider: "anthropic", Model: "claude", Input: decimal.NewFromInt(3), Output: decimal.NewFromInt(15),
 		})
 		if err != nil || f.got.Currency != "USD" {
@@ -45,7 +45,7 @@ func TestUpsert(t *testing.T) {
 		}
 	})
 	t.Run("rejects negative price as validation error", func(t *testing.T) {
-		_, err := NewService(&fakeRepo{}).Upsert(context.Background(), Input{
+		_, err := NewService(&fakeRepo{}, nil).Upsert(context.Background(), Input{
 			Provider: "p", Model: "m", Input: decimal.NewFromInt(-1), Output: decimal.NewFromInt(1),
 		})
 		ae, ok := apperrors.As(err)
@@ -55,7 +55,7 @@ func TestUpsert(t *testing.T) {
 	})
 	t.Run("maps update conflict to 409", func(t *testing.T) {
 		f := &fakeRepo{updateErr: pricingdomain.ErrConflict}
-		err := NewService(f).Update(context.Background(), "pr1", Input{
+		err := NewService(f, nil).Update(context.Background(), "pr1", Input{
 			Provider: "p", Model: "m", Input: decimal.NewFromInt(1), Output: decimal.NewFromInt(1),
 		})
 		ae, ok := apperrors.As(err)

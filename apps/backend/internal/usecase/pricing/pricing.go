@@ -25,14 +25,49 @@ type Input struct {
 	Currency string
 }
 
-type Service struct {
-	repo pricingdomain.PricingRepository
+// PriceSuggestion is a third-party reference price for a (provider, model) pair,
+// offered while filling in a Pricing Rule form. It is never persisted — see
+// CONTEXT.md's "Pricing Suggestion" glossary note. Not a domain type: this is a
+// UI convenience backed by an external integration, not a domain rule.
+type PriceSuggestion struct {
+	Provider         string
+	Model            string
+	InputPricePer1M  decimal.Decimal
+	OutputPricePer1M decimal.Decimal
 }
 
-func NewService(repo pricingdomain.PricingRepository) *Service { return &Service{repo: repo} }
+// SuggestionSource is the application-level port to a third-party price
+// reference (OpenRouter). It lives here, not in internal/domain/pricing.
+type SuggestionSource interface {
+	List(ctx context.Context) ([]PriceSuggestion, error)
+}
+
+// ErrSuggestionsDisabled is returned by a SuggestionSource when
+// PRICING_SUGGESTIONS_ENABLED=false. The HTTP layer maps this to 404.
+var ErrSuggestionsDisabled = errors.New("pricing: suggestions disabled")
+
+type Service struct {
+	repo   pricingdomain.PricingRepository
+	source SuggestionSource
+}
+
+func NewService(repo pricingdomain.PricingRepository, source SuggestionSource) *Service {
+	return &Service{repo: repo, source: source}
+}
 
 func (s *Service) List(ctx context.Context) ([]*pricingdomain.PricingRule, error) {
 	return s.repo.List(ctx)
+}
+
+// ListSuggestions returns third-party reference prices, or ErrSuggestionsDisabled
+// if the feature is turned off by config (source is a nil-safe check away from
+// a panic if a caller ever constructs a Service without one — production wiring
+// always provides one via Fx).
+func (s *Service) ListSuggestions(ctx context.Context) ([]PriceSuggestion, error) {
+	if s.source == nil {
+		return nil, ErrSuggestionsDisabled
+	}
+	return s.source.List(ctx)
 }
 
 func (s *Service) Upsert(ctx context.Context, in Input) (*pricingdomain.PricingRule, error) {

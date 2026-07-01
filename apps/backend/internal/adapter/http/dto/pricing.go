@@ -4,6 +4,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	pricingdomain "router-lens/internal/domain/pricing"
+	pricingapp "router-lens/internal/usecase/pricing"
 )
 
 // PricingRequest is the upsert/update payload for a pricing rule. The prices are
@@ -42,5 +43,23 @@ func FromPricingRule(p *pricingdomain.PricingRule) PricingResponse {
 		Currency:      p.Currency,
 		CreatedAt:     p.CreatedAt.UTC().Format(timeLayout),
 		UpdatedAt:     p.UpdatedAt.UTC().Format(timeLayout),
+	}
+}
+
+// PriceSuggestionResponse is the wire shape of a third-party reference price.
+type PriceSuggestionResponse struct {
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	InputPrice1M  string `json:"input_price_per_1m"`
+	OutputPrice1M string `json:"output_price_per_1m"`
+}
+
+// FromPriceSuggestion maps a usecase-layer suggestion to its response shape.
+func FromPriceSuggestion(s pricingapp.PriceSuggestion) PriceSuggestionResponse {
+	return PriceSuggestionResponse{
+		Provider:      s.Provider,
+		Model:         s.Model,
+		InputPrice1M:  s.InputPricePer1M.String(),
+		OutputPrice1M: s.OutputPricePer1M.String(),
 	}
 }

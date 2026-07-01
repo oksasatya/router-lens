@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -28,6 +29,7 @@ func (h *PricingHandler) Register(api *echo.Group, session echo.MiddlewareFunc) 
 	api.POST("/pricing", h.upsert, session)
 	api.PUT("/pricing/:id", h.update, session)
 	api.DELETE("/pricing/:id", h.delete, session)
+	api.GET("/pricing/suggestions", h.suggestions, session)
 }
 
 // toPricingInput dereferences the price pointers — safe because the request's
@@ -81,4 +83,19 @@ func (h *PricingHandler) delete(c echo.Context) error {
 		return err
 	}
 	return response.NoContent(c)
+}
+
+func (h *PricingHandler) suggestions(c echo.Context) error {
+	suggestions, err := h.svc.ListSuggestions(c.Request().Context())
+	if err != nil {
+		if errors.Is(err, pricingapp.ErrSuggestionsDisabled) {
+			return echo.NewHTTPError(http.StatusNotFound)
+		}
+		return echo.NewHTTPError(http.StatusBadGateway, "pricing suggestions unavailable")
+	}
+	dtos := make([]dto.PriceSuggestionResponse, 0, len(suggestions))
+	for _, s := range suggestions {
+		dtos = append(dtos, dto.FromPriceSuggestion(s))
+	}
+	return response.Data(c, http.StatusOK, dtos)
 }
