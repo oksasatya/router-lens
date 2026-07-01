@@ -133,8 +133,11 @@ var eventModule = fx.Module("event",
 		handler.NewIngestHandler,
 		eventapp.NewQueryService,
 		handler.NewEventLogHandler,
+		fx.Annotate(postgres.NewAnalyticsRepository, fx.As(new(event.AnalyticsRepository))),
+		eventapp.NewAnalyticsService,
+		handler.NewAnalyticsHandler,
 	),
-	fx.Invoke(registerEventIngestRoutes, registerEventLogRoutes),
+	fx.Invoke(registerEventIngestRoutes, registerEventLogRoutes, registerAnalyticsRoutes),
 )
 
 // provideIngestService derives the backdate window from config, keeping
@@ -154,6 +157,11 @@ func registerEventIngestRoutes(e *echo.Echo, h *handler.IngestHandler, keys apik
 
 // registerEventLogRoutes mounts the session-authenticated read routes.
 func registerEventLogRoutes(e *echo.Echo, h *handler.EventLogHandler, session echo.MiddlewareFunc) {
+	h.Register(e.Group(apiBasePath), session)
+}
+
+// registerAnalyticsRoutes mounts the analytics routes behind the session middleware.
+func registerAnalyticsRoutes(e *echo.Echo, h *handler.AnalyticsHandler, session echo.MiddlewareFunc) {
 	h.Register(e.Group(apiBasePath), session)
 }
 

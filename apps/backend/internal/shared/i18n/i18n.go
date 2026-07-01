@@ -70,6 +70,9 @@ const (
 	CodeEventStringTooLong    = "event.string_too_long"
 	CodeEventMetadataTooLarge = "event.metadata_too_large"
 	CodeEventNotFound         = "event.not_found"
+
+	// --- analytics ---
+	CodeAnalyticsInvalidInterval = "analytics.invalid_interval"
 )
 
 // catalog maps an error code to its localized messages.
@@ -101,6 +104,8 @@ var catalog = map[string]map[Lang]string{
 	CodeEventStringTooLong:    {EN: "A field is too long", ID: "Salah satu field terlalu panjang"},
 	CodeEventMetadataTooLarge: {EN: "metadata exceeds the 8KB limit", ID: "metadata melebihi batas 8KB"},
 	CodeEventNotFound:         {EN: "Event not found", ID: "Event tidak ditemukan"},
+	// --- analytics ---
+	CodeAnalyticsInvalidInterval: {EN: "interval must be one of hour, day, or week", ID: "interval harus salah satu dari hour, day, atau week"},
 }
 
 // Message returns the localized message for code, falling back to the default
