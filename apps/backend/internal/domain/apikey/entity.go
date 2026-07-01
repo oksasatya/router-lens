@@ -20,3 +20,6 @@ type APIKey struct {
 	RevokedAt  *time.Time
 	CreatedAt  time.Time
 }
+
+// IsRevoked reports whether the key has been revoked and may no longer ingest.
+func (k APIKey) IsRevoked() bool { return k.RevokedAt != nil }

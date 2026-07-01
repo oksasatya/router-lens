@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -24,6 +25,7 @@ import (
 	"router-lens/internal/adapter/http/middleware"
 	"router-lens/internal/adapter/postgres"
 	apikey "router-lens/internal/domain/apikey"
+	event "router-lens/internal/domain/event"
 	pricing "router-lens/internal/domain/pricing"
 	project "router-lens/internal/domain/project"
 	"router-lens/internal/domain/user"
@@ -32,6 +34,7 @@ import (
 	"router-lens/internal/shared/validator"
 	apikeyapp "router-lens/internal/usecase/apikey"
 	"router-lens/internal/usecase/auth"
+	eventapp "router-lens/internal/usecase/event"
 	pricingapp "router-lens/internal/usecase/pricing"
 	projectapp "router-lens/internal/usecase/project"
 )
@@ -62,6 +65,7 @@ func options() fx.Option {
 		projectModule,
 		apiKeyModule,
 		pricingModule,
+		eventModule,
 		fx.Invoke(startServer),
 	)
 }
@@ -121,6 +125,37 @@ var pricingModule = fx.Module("pricing",
 	),
 	fx.Invoke(registerPricingRoutes),
 )
+
+var eventModule = fx.Module("event",
+	fx.Provide(
+		fx.Annotate(postgres.NewEventRepository, fx.As(new(event.EventRepository))),
+		provideIngestService,
+		handler.NewIngestHandler,
+		eventapp.NewQueryService,
+		handler.NewEventLogHandler,
+	),
+	fx.Invoke(registerEventIngestRoutes, registerEventLogRoutes),
+)
+
+// provideIngestService derives the backdate window from config, keeping
+// eventapp.NewIngestService itself free of a config.Config dependency
+// (hexagonal — the use case doesn't know about env vars).
+func provideIngestService(events event.EventRepository, prices pricing.PricingRepository, cfg config.Config) *eventapp.IngestService {
+	return eventapp.NewIngestService(events, prices, time.Duration(cfg.MaxBackdateDays)*24*time.Hour)
+}
+
+// registerEventIngestRoutes mounts the ingest route behind the API-key
+// middleware, built inline here since it is the middleware's only consumer —
+// Fx cannot provide two distinct echo.MiddlewareFunc values without named
+// results, and provideSessionMiddleware already claims that type.
+func registerEventIngestRoutes(e *echo.Echo, h *handler.IngestHandler, keys apikey.APIKeyRepository) {
+	h.Register(e.Group(apiBasePath), middleware.APIKey(keys))
+}
+
+// registerEventLogRoutes mounts the session-authenticated read routes.
+func registerEventLogRoutes(e *echo.Echo, h *handler.EventLogHandler, session echo.MiddlewareFunc) {
+	h.Register(e.Group(apiBasePath), session)
+}
 
 // providePool opens the pool and ties its lifetime to the fx lifecycle.
 func providePool(lc fx.Lifecycle, cfg config.Config) (*pgxpool.Pool, error) {

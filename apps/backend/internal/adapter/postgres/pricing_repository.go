@@ -57,6 +57,19 @@ func (r *PricingRepository) FindByID(ctx context.Context, id string) (*pricing.P
 	return &rule, nil
 }
 
+func (r *PricingRepository) FindByProviderModel(ctx context.Context, provider, model string) (*pricing.PricingRule, error) {
+	q := `SELECT ` + pricingColumns + ` FROM pricing_rules WHERE provider = $1 AND model = $2`
+	var rule pricing.PricingRule
+	err := scanRule(r.pool.QueryRow(ctx, q, provider, model), &rule)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, pricing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &rule, nil
+}
+
 func (r *PricingRepository) Upsert(ctx context.Context, rule *pricing.PricingRule) error {
 	const q = `INSERT INTO pricing_rules (provider, model, input_price_per_1m, output_price_per_1m, currency)
 		VALUES ($1, $2, $3, $4, $5)

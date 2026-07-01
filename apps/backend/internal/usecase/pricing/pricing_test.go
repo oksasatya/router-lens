@@ -30,6 +30,9 @@ func (f *fakeRepo) Upsert(_ context.Context, r *pricingdomain.PricingRule) error
 }
 func (f *fakeRepo) Update(_ context.Context, r *pricingdomain.PricingRule) error { return f.updateErr }
 func (f *fakeRepo) Delete(context.Context, string) error                         { return nil }
+func (f *fakeRepo) FindByProviderModel(context.Context, string, string) (*pricingdomain.PricingRule, error) {
+	return nil, pricingdomain.ErrNotFound
+}
 
 func TestUpsert(t *testing.T) {
 	t.Run("defaults currency to USD", func(t *testing.T) {

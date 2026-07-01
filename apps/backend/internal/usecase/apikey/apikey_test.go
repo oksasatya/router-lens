@@ -22,6 +22,10 @@ func (f *fakeKeyRepo) ListByProject(context.Context, string) ([]*apikeydomain.AP
 	return []*apikeydomain.APIKey{{ID: "k1", KeyPrefix: "rl_live_ab"}}, nil
 }
 func (f *fakeKeyRepo) Revoke(context.Context, string) error { return nil }
+func (f *fakeKeyRepo) FindByHash(context.Context, string) (*apikeydomain.APIKey, error) {
+	return nil, apikeydomain.ErrNotFound
+}
+func (f *fakeKeyRepo) TouchLastUsed(context.Context, string) error { return nil }
 
 type fakeProjRepo struct{ exists bool }
 

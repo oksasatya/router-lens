@@ -52,3 +52,23 @@ func (r *APIKeyRepository) Revoke(ctx context.Context, id string) error {
 	}
 	return err
 }
+
+func (r *APIKeyRepository) FindByHash(ctx context.Context, keyHash string) (*apikey.APIKey, error) {
+	const q = `SELECT id, project_id, name, key_prefix, last_used_at, revoked_at, created_at
+		FROM api_keys WHERE key_hash = $1`
+	var k apikey.APIKey
+	err := r.pool.QueryRow(ctx, q, keyHash).
+		Scan(&k.ID, &k.ProjectID, &k.Name, &k.KeyPrefix, &k.LastUsedAt, &k.RevokedAt, &k.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apikey.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &k, nil
+}
+
+func (r *APIKeyRepository) TouchLastUsed(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE api_keys SET last_used_at = now() WHERE id = $1`, id)
+	return err
+}
