@@ -1,4 +1,4 @@
-import { FolderKanban, KeyRound, LayoutDashboard, ScrollText, Settings, Tag } from "lucide-react";
+import { FolderKanban, LayoutDashboard, ScrollText, Settings, Tag } from "lucide-react";
 import type { ComponentType } from "react";
 
 export interface NavItem {
@@ -13,7 +13,6 @@ export const NAV: readonly NavItem[] = [
   { to: "/", key: "nav.dashboard", icon: LayoutDashboard },
   { to: "/logs", key: "nav.logs", icon: ScrollText },
   { to: "/projects", key: "nav.projects", icon: FolderKanban },
-  { to: "/api-keys", key: "nav.apiKeys", icon: KeyRound },
   { to: "/pricing", key: "nav.pricing", icon: Tag },
   { to: "/settings", key: "nav.settings", icon: Settings },
 ];

@@ -34,3 +34,17 @@ export const projectSchema = z.object({
   updated_at: z.string(),
 });
 export type Project = z.infer<typeof projectSchema>;
+
+export const apiKeySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  key_prefix: z.string(),
+  last_used_at: z.string().nullable(),
+  revoked_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export type ApiKey = z.infer<typeof apiKeySchema>;
+
+/** POST /projects/:id/api-keys response — carries the plaintext key exactly once. */
+export const apiKeyCreatedSchema = apiKeySchema.extend({ key: z.string() });
+export type ApiKeyCreated = z.infer<typeof apiKeyCreatedSchema>;

@@ -84,5 +84,31 @@
     "errors": {
       "nameRequired": "Project name is required."
     }
+  },
+  "apiKeys": {
+    "new": "New key",
+    "empty": "No API keys yet.",
+    "fields": {
+      "name": "Name",
+      "prefix": "Prefix",
+      "lastUsed": "Last used",
+      "createdAt": "Created",
+      "status": "Status"
+    },
+    "neverUsed": "Never used",
+    "activeStatus": "Active",
+    "revokedStatus": "Revoked",
+    "revoke": "Revoke",
+    "revoked": "API key revoked",
+    "revokeTitle": "Revoke API key?",
+    "revokeDescription": "Revoke \"{{name}}\"? Any client using it will stop being able to send events. This cannot be undone.",
+    "newTitle": "New API key",
+    "newDescription": "Name it after where it will be used, e.g. \"prod-gateway\".",
+    "create": "Create key",
+    "createdTitle": "API key created",
+    "createdWarning": "Copy this key now — it will not be shown again.",
+    "errors": {
+      "nameRequired": "Key name is required."
+    }
   }
 }

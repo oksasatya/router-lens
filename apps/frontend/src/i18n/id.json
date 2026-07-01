@@ -84,5 +84,31 @@
     "errors": {
       "nameRequired": "Nama proyek wajib diisi."
     }
+  },
+  "apiKeys": {
+    "new": "Kunci baru",
+    "empty": "Belum ada kunci API.",
+    "fields": {
+      "name": "Nama",
+      "prefix": "Prefiks",
+      "lastUsed": "Terakhir dipakai",
+      "createdAt": "Dibuat",
+      "status": "Status"
+    },
+    "neverUsed": "Belum pernah dipakai",
+    "activeStatus": "Aktif",
+    "revokedStatus": "Dicabut",
+    "revoke": "Cabut",
+    "revoked": "Kunci API dicabut",
+    "revokeTitle": "Cabut kunci API?",
+    "revokeDescription": "Cabut \"{{name}}\"? Klien yang memakainya akan berhenti bisa kirim event. Tindakan ini tidak bisa dibatalkan.",
+    "newTitle": "Kunci API baru",
+    "newDescription": "Beri nama sesuai tempat pemakaiannya, mis. \"prod-gateway\".",
+    "create": "Buat kunci",
+    "createdTitle": "Kunci API dibuat",
+    "createdWarning": "Salin kunci ini sekarang — tidak akan ditampilkan lagi.",
+    "errors": {
+      "nameRequired": "Nama kunci wajib diisi."
+    }
   }
 }

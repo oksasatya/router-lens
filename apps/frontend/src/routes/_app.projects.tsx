@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -50,13 +50,14 @@ function ProjectsRoute() {
   });
 
   const columns: DataTableColumn<Project>[] = [
-    // ponytail: plain text for now — wrap in <Link to="/projects/$projectId">
-    // once that detail route exists (separate task); linking to a route that
-    // doesn't exist yet breaks TanStack Router's typed route generation.
     {
       key: "name",
       header: t("projects.fields.name"),
-      cell: (p) => <span className="font-medium">{p.name}</span>,
+      cell: (p) => (
+        <Link to="/projects/$projectId" params={{ projectId: p.id }} search={{ page: 1 }} className="font-medium hover:underline">
+          {p.name}
+        </Link>
+      ),
     },
     { key: "slug", header: t("projects.fields.slug"), cell: (p) => <span className="text-muted-foreground">{p.slug}</span> },
     {
