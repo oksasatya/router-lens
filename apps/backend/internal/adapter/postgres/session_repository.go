@@ -46,3 +46,9 @@ func (r *SessionRepository) DeleteByTokenHash(ctx context.Context, tokenHash str
 	_, err := r.pool.Exec(ctx, `DELETE FROM sessions WHERE token_hash = $1`, tokenHash)
 	return err
 }
+
+func (r *SessionRepository) DeleteByUserIDExceptTokenHash(ctx context.Context, userID, keepTokenHash string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM sessions WHERE user_id = $1 AND token_hash != $2`, userID, keepTokenHash)
+	return err
+}

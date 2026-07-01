@@ -25,6 +25,9 @@ func (x stubSessions) FindByTokenHash(_ context.Context, h string) (*user.Sessio
 	return nil, user.ErrNotFound
 }
 func (x stubSessions) DeleteByTokenHash(context.Context, string) error { return nil }
+func (x stubSessions) DeleteByUserIDExceptTokenHash(context.Context, string, string) error {
+	return nil
+}
 
 type stubUsers struct{ u *user.User }
 
@@ -38,7 +41,9 @@ func (x stubUsers) FindByID(_ context.Context, id string) (*user.User, error) {
 	}
 	return nil, user.ErrNotFound
 }
-func (x stubUsers) AnyExists(context.Context) (bool, error) { return true, nil }
+func (x stubUsers) AnyExists(context.Context) (bool, error)                  { return true, nil }
+func (x stubUsers) UpdateName(context.Context, string, string) error         { return nil }
+func (x stubUsers) UpdatePasswordHash(context.Context, string, string) error { return nil }
 
 // errUsers returns the configured error from FindByID regardless of input.
 type errUsers struct{ err error }
@@ -47,6 +52,8 @@ func (x errUsers) CreateInitialAdmin(context.Context, *user.User) (bool, error) 
 func (x errUsers) FindByEmail(context.Context, string) (*user.User, error)      { return nil, nil }
 func (x errUsers) FindByID(context.Context, string) (*user.User, error)         { return nil, x.err }
 func (x errUsers) AnyExists(context.Context) (bool, error)                      { return true, nil }
+func (x errUsers) UpdateName(context.Context, string, string) error             { return nil }
+func (x errUsers) UpdatePasswordHash(context.Context, string, string) error     { return nil }
 
 func TestSessionMiddleware(t *testing.T) {
 	e := echo.New()

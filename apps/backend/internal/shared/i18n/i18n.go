@@ -46,8 +46,9 @@ const (
 	CodeNotFound     = "not_found"
 
 	// --- auth ---
-	CodeAuthInvalidCredentials = "auth.invalid_credentials"
-	CodeAuthSetupLocked        = "auth.setup_locked"
+	CodeAuthInvalidCredentials     = "auth.invalid_credentials"
+	CodeAuthSetupLocked            = "auth.setup_locked"
+	CodeAuthInvalidCurrentPassword = "auth.invalid_current_password"
 
 	// --- project ---
 	CodeProjectNotFound  = "project.not_found"
@@ -84,8 +85,9 @@ var catalog = map[string]map[Lang]string{
 	CodeForbidden:    {EN: "Access denied", ID: "Akses ditolak"},
 	CodeNotFound:     {EN: "Resource not found", ID: "Data tidak ditemukan"},
 	// --- auth ---
-	CodeAuthInvalidCredentials: {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
-	CodeAuthSetupLocked:        {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
+	CodeAuthInvalidCredentials:     {EN: "Invalid email or password", ID: "Email atau kata sandi salah"},
+	CodeAuthSetupLocked:            {EN: "Setup is already completed", ID: "Setup sudah pernah dilakukan"},
+	CodeAuthInvalidCurrentPassword: {EN: "Current password is incorrect", ID: "Kata sandi saat ini salah"},
 	// --- project ---
 	CodeProjectNotFound:  {EN: "Project not found", ID: "Proyek tidak ditemukan"},
 	CodeProjectSlugTaken: {EN: "A project with this name already exists", ID: "Proyek dengan nama ini sudah ada"},

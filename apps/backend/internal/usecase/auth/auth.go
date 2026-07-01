@@ -106,6 +106,40 @@ func (s *Service) Logout(ctx context.Context, tokenHash string) error {
 	return s.sessions.DeleteByTokenHash(ctx, tokenHash)
 }
 
+// UpdateProfile changes the admin's display name.
+func (s *Service) UpdateProfile(ctx context.Context, userID, name string) (*user.User, error) {
+	if err := s.users.UpdateName(ctx, userID, name); err != nil {
+		return nil, err
+	}
+	return s.users.FindByID(ctx, userID)
+}
+
+// ChangePassword verifies currentPassword, rotates the password hash, and revokes every
+// other active session — the session identified by currentSessionTokenHash (the one
+// making this request) is left alone. This closes the "leaked session cookie" case: the
+// moment the admin changes their password, any other session stops working.
+func (s *Service) ChangePassword(ctx context.Context, userID, currentSessionTokenHash, currentPassword, newPassword string) error {
+	u, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	ok, err := security.VerifyPassword(currentPassword, u.PasswordHash)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return apperrors.New(apperrors.KindValidation, i18n.CodeAuthInvalidCurrentPassword, "current password is incorrect")
+	}
+	hash, err := security.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	if err := s.users.UpdatePasswordHash(ctx, userID, hash); err != nil {
+		return err
+	}
+	return s.sessions.DeleteByUserIDExceptTokenHash(ctx, userID, currentSessionTokenHash)
+}
+
 func (s *Service) invalidCredentials() error {
 	return apperrors.New(apperrors.KindUnauthorized, i18n.CodeAuthInvalidCredentials, "invalid email or password")
 }

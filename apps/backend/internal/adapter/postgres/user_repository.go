@@ -66,6 +66,16 @@ func (r *UserRepository) AnyExists(ctx context.Context) (bool, error) {
 	return exists, err
 }
 
+func (r *UserRepository) UpdateName(ctx context.Context, id, name string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE users SET name = $1, updated_at = now() WHERE id = $2`, name, id)
+	return err
+}
+
+func (r *UserRepository) UpdatePasswordHash(ctx context.Context, id, hash string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, hash, id)
+	return err
+}
+
 func (r *UserRepository) scanOne(ctx context.Context, q string, arg any) (*user.User, error) {
 	var u user.User
 	err := r.pool.QueryRow(ctx, q, arg).

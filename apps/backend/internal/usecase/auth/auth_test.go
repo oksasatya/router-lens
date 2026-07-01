@@ -35,18 +35,48 @@ func (f *fakeUsers) FindByEmail(_ context.Context, e string) (*user.User, error)
 	}
 	return nil, user.ErrNotFound
 }
-func (f *fakeUsers) FindByID(context.Context, string) (*user.User, error) {
+func (f *fakeUsers) FindByID(_ context.Context, id string) (*user.User, error) {
+	for _, u := range f.byEmail {
+		if u.ID == id {
+			return u, nil
+		}
+	}
 	return nil, user.ErrNotFound
 }
 func (f *fakeUsers) AnyExists(context.Context) (bool, error) { return f.created, nil }
+func (f *fakeUsers) UpdateName(ctx context.Context, id, name string) error {
+	u, err := f.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	u.Name = name
+	return nil
+}
+func (f *fakeUsers) UpdatePasswordHash(ctx context.Context, id, hash string) error {
+	u, err := f.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	u.PasswordHash = hash
+	return nil
+}
 
-type fakeSessions struct{ saved *user.Session }
+type fakeSessions struct {
+	saved         *user.Session
+	deletedUserID string
+	keptTokenHash string
+}
 
 func (f *fakeSessions) Create(_ context.Context, s *user.Session) error { f.saved = s; return nil }
 func (f *fakeSessions) FindByTokenHash(context.Context, string) (*user.Session, error) {
 	return nil, user.ErrNotFound
 }
 func (f *fakeSessions) DeleteByTokenHash(context.Context, string) error { return nil }
+func (f *fakeSessions) DeleteByUserIDExceptTokenHash(_ context.Context, userID, keepTokenHash string) error {
+	f.deletedUserID = userID
+	f.keptTokenHash = keepTokenHash
+	return nil
+}
 
 const testPassword = "password123"
 
@@ -99,6 +129,66 @@ func TestAuthService(t *testing.T) {
 			if !ok || ae.Code != i18n.CodeAuthInvalidCredentials {
 				t.Fatalf("expected invalid_credentials for %v, got %v", c, err)
 			}
+		}
+	})
+
+	t.Run("update profile updates the name", func(t *testing.T) {
+		fu := &fakeUsers{created: true, byEmail: map[string]*user.User{
+			"a@b.com": {ID: "u1", Email: "a@b.com", Name: "Old Name"},
+		}}
+		svc := NewService(fu, &fakeSessions{})
+		u, err := svc.UpdateProfile(ctx, "u1", "New Name")
+		if err != nil {
+			t.Fatalf("update profile: %v", err)
+		}
+		if u.Name != "New Name" {
+			t.Fatalf("expected name updated, got %q", u.Name)
+		}
+	})
+
+	t.Run("change password succeeds, rotates hash, revokes other sessions", func(t *testing.T) {
+		hash, err := security.HashPassword(testPassword)
+		if err != nil {
+			t.Fatalf("HashPassword: %v", err)
+		}
+		fu := &fakeUsers{created: true, byEmail: map[string]*user.User{
+			"a@b.com": {ID: "u1", Email: "a@b.com", PasswordHash: hash},
+		}}
+		fs := &fakeSessions{}
+		svc := NewService(fu, fs)
+		if err := svc.ChangePassword(ctx, "u1", "keep-hash", testPassword, "newpassword123"); err != nil {
+			t.Fatalf("change password: %v", err)
+		}
+		ok, _ := security.VerifyPassword("newpassword123", fu.byEmail["a@b.com"].PasswordHash)
+		if !ok {
+			t.Fatal("password hash was not updated")
+		}
+		if fs.deletedUserID != "u1" || fs.keptTokenHash != "keep-hash" {
+			t.Fatalf("expected other sessions revoked for u1 keeping keep-hash, got userID=%q keep=%q",
+				fs.deletedUserID, fs.keptTokenHash)
+		}
+	})
+
+	t.Run("change password rejects wrong current password without mutating state", func(t *testing.T) {
+		hash, err := security.HashPassword(testPassword)
+		if err != nil {
+			t.Fatalf("HashPassword: %v", err)
+		}
+		fu := &fakeUsers{created: true, byEmail: map[string]*user.User{
+			"a@b.com": {ID: "u1", Email: "a@b.com", PasswordHash: hash},
+		}}
+		fs := &fakeSessions{}
+		svc := NewService(fu, fs)
+		err = svc.ChangePassword(ctx, "u1", "keep-hash", "wrong-password", "newpassword123")
+		ae, ok := apperrors.As(err)
+		if !ok || ae.Code != i18n.CodeAuthInvalidCurrentPassword {
+			t.Fatalf("expected invalid_current_password, got %v", err)
+		}
+		if fu.byEmail["a@b.com"].PasswordHash != hash {
+			t.Fatal("password hash must not change on wrong current password")
+		}
+		if fs.deletedUserID != "" {
+			t.Fatal("sessions must not be revoked when the password change fails")
 		}
 	})
 }
