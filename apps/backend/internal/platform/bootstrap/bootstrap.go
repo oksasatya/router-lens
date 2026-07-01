@@ -21,6 +21,7 @@ import (
 	"go.uber.org/fx/fxevent"
 
 	httpserver "router-lens/internal/adapter/http"
+	"router-lens/internal/adapter/http/dto"
 	"router-lens/internal/adapter/http/handler"
 	"router-lens/internal/adapter/http/middleware"
 	"router-lens/internal/adapter/postgres"
@@ -31,6 +32,7 @@ import (
 	"router-lens/internal/domain/user"
 	"router-lens/internal/platform/config"
 	"router-lens/internal/platform/logging"
+	"router-lens/internal/shared/i18n"
 	"router-lens/internal/shared/validator"
 	apikeyapp "router-lens/internal/usecase/apikey"
 	"router-lens/internal/usecase/auth"
@@ -261,4 +263,37 @@ func MigrateAndExit() error {
 	}
 	defer pool.Close()
 	return postgres.Migrate(context.Background(), pool)
+}
+
+// CreateAdminAndExit is the non-Fx path for the `-create-admin` flag: load
+// config, open a pool, and call the SAME auth.Service.Setup the HTTP setup
+// wizard uses — this is a second caller of that use case, not a second
+// admin-creation mechanism. Setup itself already enforces "locked after the
+// first user" (decision 5), so a second run against an initialized instance
+// fails the same way the web wizard would. Validation reuses dto.SetupRequest
+// + the shared validator so the CLI enforces the exact same rules (email
+// format, password length) as the HTTP wizard — no second, parallel rule set.
+func CreateAdminAndExit(email, password, name string) error {
+	v, err := validator.New()
+	if err != nil {
+		return err
+	}
+	req := dto.SetupRequest{Email: email, Password: password, Name: name}
+	if err := v.Struct(req, i18n.EN); err != nil {
+		return err
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	logging.New(cfg.IsProduction(), cfg.LogLevel)
+	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	users := postgres.NewUserRepository(pool)
+	sessions := postgres.NewSessionRepository(pool)
+	return auth.NewService(users, sessions).Setup(context.Background(), req.Email, req.Password, req.Name)
 }

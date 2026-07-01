@@ -13,7 +13,8 @@ coverage.out
 coverage.html
 __debug_bin*
 # embedded frontend build copied in at build time
-apps/backend/internal/web/dist/
+apps/backend/internal/web/dist/*
+!apps/backend/internal/web/dist/.gitkeep
 apps/backend/bin/
 
 # ---- Node / frontend (apps/frontend) ----
