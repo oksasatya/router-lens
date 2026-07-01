@@ -51,7 +51,9 @@ export function ModelSuggestionPicker({ open, onOpenChange, onSelect }: ModelSug
         <Command shouldFilter value={search} onValueChange={setSearch}>
           <CommandInput placeholder={t("pricing.suggestions.searchPlaceholder")} />
           <CommandList>
-            <CommandEmpty>{t("pricing.suggestions.empty")}</CommandEmpty>
+            <CommandEmpty>
+              {query.isError ? t("pricing.suggestions.unavailable") : t("pricing.suggestions.empty")}
+            </CommandEmpty>
             {groups.map(([provider, items]) => (
               <CommandGroup
                 key={provider}

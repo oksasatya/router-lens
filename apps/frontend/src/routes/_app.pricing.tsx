@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatTimestamp } from "@/lib/date";
 import { formatUSD } from "@/lib/money";
 import { pricingQueryOptions } from "@/lib/pricing";
+import { pricingSuggestionsQueryOptions } from "@/lib/pricingSuggestions";
 import type { PricingRule } from "@/lib/schemas";
 import { deletePricing } from "@/services/pricingService";
 
@@ -24,6 +25,12 @@ function PricingRoute() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(pricingQueryOptions);
+  // Same queryKey as ModelSuggestionPicker's own query — TanStack Query dedupes,
+  // this is only here to know whether to show the entry point at all (disabled
+  // via config -> empty array; OpenRouter unreachable -> isError), never a
+  // second network call.
+  const suggestionsQuery = useQuery(pricingSuggestionsQueryOptions);
+  const suggestionsAvailable = suggestionsQuery.isSuccess && suggestionsQuery.data.length > 0;
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PricingRule | null>(null);
@@ -83,13 +90,12 @@ function PricingRoute() {
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">{t("nav.pricing")}</h1>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setPickerOpen(true)}
-          >
-            <Sparkles className="size-4" />
-            {t("pricing.suggestions.browse")}
-          </Button>
+          {suggestionsAvailable && (
+            <Button variant="outline" onClick={() => setPickerOpen(true)}>
+              <Sparkles className="size-4" />
+              {t("pricing.suggestions.browse")}
+            </Button>
+          )}
           <Button
             onClick={() => {
               setEditing(null);
