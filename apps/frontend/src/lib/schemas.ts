@@ -60,3 +60,91 @@ export const pricingRuleSchema = z.object({
   updated_at: z.string(),
 });
 export type PricingRule = z.infer<typeof pricingRuleSchema>;
+
+// --- events ---
+
+export const eventSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  provider: z.string(),
+  model: z.string(),
+  route_source: z.string(),
+  agent: z.string(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  cost_usd: z.string().nullable(),
+  input_price_1m: z.string().nullable(),
+  output_price_1m: z.string().nullable(),
+  latency_ms: z.number().nullable(),
+  status_code: z.number().nullable(),
+  is_error: z.boolean(),
+  error_message: z.string(),
+  request_started_at: z.string(),
+  request_finished_at: z.string().nullable(),
+  metadata: z.unknown().optional(),
+});
+export type Event = z.infer<typeof eventSchema>;
+
+/** GET /events — keyset-paginated, NOT the offset `paginated()` shape. */
+export const eventCursorPageSchema = z.object({
+  items: z.array(eventSchema),
+  next_cursor: z.string(),
+});
+export type EventCursorPage = z.infer<typeof eventCursorPageSchema>;
+
+// --- analytics ---
+
+export const overviewSchema = z.object({
+  total_requests: z.number(),
+  total_input_tokens: z.number(),
+  total_output_tokens: z.number(),
+  total_cost_usd: z.string().nullable(),
+  unpriced_count: z.number(),
+  avg_latency_ms: z.number().nullable(),
+  p95_latency_ms: z.number().nullable(),
+  error_count: z.number(),
+  error_rate: z.number(),
+  most_used_provider: z.string(),
+  most_used_model: z.string(),
+  most_expensive_model: z.string(),
+  top_projects: z.array(
+    z.object({ project_id: z.string(), project_name: z.string(), request_count: z.number() }),
+  ),
+});
+export type Overview = z.infer<typeof overviewSchema>;
+
+export const tokenPointSchema = z.object({
+  bucket: z.string(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+});
+export type TokenPoint = z.infer<typeof tokenPointSchema>;
+
+export const costPointSchema = z.object({ bucket: z.string(), cost_usd: z.string().nullable() });
+export type CostPoint = z.infer<typeof costPointSchema>;
+
+export const latencyPointSchema = z.object({
+  bucket: z.string(),
+  avg_latency_ms: z.number().nullable(),
+  p95_latency_ms: z.number().nullable(),
+});
+export type LatencyPoint = z.infer<typeof latencyPointSchema>;
+
+export const errorPointSchema = z.object({
+  bucket: z.string(),
+  request_count: z.number(),
+  error_count: z.number(),
+  error_rate: z.number(),
+});
+export type ErrorPoint = z.infer<typeof errorPointSchema>;
+
+const distributionFields = {
+  request_count: z.number(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  cost_usd: z.string().nullable(),
+};
+export const providerStatSchema = z.object({ provider: z.string(), ...distributionFields });
+export type ProviderStat = z.infer<typeof providerStatSchema>;
+export const modelStatSchema = z.object({ provider: z.string(), model: z.string(), ...distributionFields });
+export type ModelStat = z.infer<typeof modelStatSchema>;

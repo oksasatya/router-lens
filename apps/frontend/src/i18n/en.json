@@ -6,6 +6,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "logs": "Logs",
+    "analytics": "Analytics",
     "projects": "Projects",
     "apiKeys": "API Keys",
     "pricing": "Pricing",
@@ -29,7 +30,13 @@
     "done": "Done",
     "previous": "Previous",
     "next": "Next",
-    "pageOf": "Page {{page}} of {{totalPages}}"
+    "pageOf": "Page {{page}} of {{totalPages}}",
+    "dateRange": "Date range",
+    "preset": {
+      "24h": "24h",
+      "7d": "7d",
+      "30d": "30d"
+    }
   },
   "auth": {
     "login": {
@@ -142,6 +149,56 @@
       "modelRequired": "Model is required.",
       "priceRequired": "Price is required.",
       "priceInvalid": "Enter a non-negative number."
+    }
+  },
+  "logs": {
+    "export": "Export CSV",
+    "empty": "No events in this range yet.",
+    "ok": "OK",
+    "error": "Error",
+    "columns": {
+      "time": "Time",
+      "provider": "Provider",
+      "model": "Model",
+      "tokens": "Tokens (in/out)",
+      "cost": "Cost",
+      "latency": "Latency",
+      "status": "Status"
+    },
+    "filters": {
+      "project": "Project",
+      "allProjects": "All projects",
+      "provider": "Provider",
+      "model": "Model",
+      "errorsOnly": "Errors only"
+    }
+  },
+  "analytics": {
+    "stats": {
+      "requests": "Requests",
+      "tokens": "Tokens (in/out)",
+      "cost": "Cost",
+      "latency": "Latency (avg/P95)",
+      "latencyHint": "Average / 95th percentile",
+      "errorRate": "Error rate",
+      "mostUsed": "Most-used model",
+      "unpricedHint": "{{count}} unpriced event(s)"
+    },
+    "charts": {
+      "tokens": "Tokens over time",
+      "cost": "Cost over time",
+      "latency": "Latency over time",
+      "errors": "Errors over time",
+      "empty": "No data in this range yet."
+    },
+    "providers": "By provider",
+    "models": "By model",
+    "columns": {
+      "provider": "Provider",
+      "model": "Model",
+      "requests": "Requests",
+      "tokens": "Tokens (in/out)",
+      "cost": "Cost"
     }
   }
 }

@@ -6,6 +6,7 @@
   "nav": {
     "dashboard": "Beranda",
     "logs": "Log",
+    "analytics": "Analitik",
     "projects": "Proyek",
     "apiKeys": "Kunci API",
     "pricing": "Harga",
@@ -29,7 +30,13 @@
     "done": "Selesai",
     "previous": "Sebelumnya",
     "next": "Berikutnya",
-    "pageOf": "Halaman {{page}} dari {{totalPages}}"
+    "pageOf": "Halaman {{page}} dari {{totalPages}}",
+    "dateRange": "Rentang tanggal",
+    "preset": {
+      "24h": "24h",
+      "7d": "7d",
+      "30d": "30d"
+    }
   },
   "auth": {
     "login": {
@@ -142,6 +149,56 @@
       "modelRequired": "Model wajib diisi.",
       "priceRequired": "Harga wajib diisi.",
       "priceInvalid": "Masukkan angka non-negatif."
+    }
+  },
+  "logs": {
+    "export": "Ekspor CSV",
+    "empty": "Belum ada event di rentang ini.",
+    "ok": "OK",
+    "error": "Error",
+    "columns": {
+      "time": "Waktu",
+      "provider": "Provider",
+      "model": "Model",
+      "tokens": "Token (masuk/keluar)",
+      "cost": "Biaya",
+      "latency": "Latensi",
+      "status": "Status"
+    },
+    "filters": {
+      "project": "Proyek",
+      "allProjects": "Semua proyek",
+      "provider": "Provider",
+      "model": "Model",
+      "errorsOnly": "Hanya error"
+    }
+  },
+  "analytics": {
+    "stats": {
+      "requests": "Permintaan",
+      "tokens": "Token (masuk/keluar)",
+      "cost": "Biaya",
+      "latency": "Latensi (rata-rata/P95)",
+      "latencyHint": "Rata-rata / persentil ke-95",
+      "errorRate": "Tingkat error",
+      "mostUsed": "Model paling sering digunakan",
+      "unpricedHint": "{{count}} event tanpa harga"
+    },
+    "charts": {
+      "tokens": "Token seiring waktu",
+      "cost": "Biaya seiring waktu",
+      "latency": "Latensi seiring waktu",
+      "errors": "Error seiring waktu",
+      "empty": "Belum ada data di rentang ini."
+    },
+    "providers": "Berdasarkan provider",
+    "models": "Berdasarkan model",
+    "columns": {
+      "provider": "Provider",
+      "model": "Model",
+      "requests": "Permintaan",
+      "tokens": "Token (masuk/keluar)",
+      "cost": "Biaya"
     }
   }
 }
