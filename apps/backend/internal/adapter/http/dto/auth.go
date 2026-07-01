@@ -15,6 +15,17 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// UpdateProfileRequest is the PUT /auth/me payload.
+type UpdateProfileRequest struct {
+	Name string `json:"name" validate:"required,max=100"`
+}
+
+// ChangePasswordRequest is the POST /auth/change-password payload.
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8,max=128"`
+}
+
 // UserResponse is the public shape of an authenticated user.
 type UserResponse struct {
 	ID    string `json:"id"`
