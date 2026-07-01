@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal, Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { ModelSuggestionPicker } from "@/components/pricing/ModelSuggestionPicker";
 import { PricingFormDialog } from "@/components/pricing/PricingFormDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -27,6 +28,13 @@ function PricingRoute() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PricingRule | null>(null);
   const [deleting, setDeleting] = useState<PricingRule | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [suggestionDefaults, setSuggestionDefaults] = useState<{
+    provider: string;
+    model: string;
+    input_price_per_1m: string;
+    output_price_per_1m: string;
+  } | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: deletePricing,
@@ -74,15 +82,24 @@ function PricingRoute() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">{t("nav.pricing")}</h1>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="size-4" />
-          {t("pricing.new")}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Sparkles className="size-4" />
+            {t("pricing.suggestions.browse")}
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="size-4" />
+            {t("pricing.new")}
+          </Button>
+        </div>
       </div>
 
       <DataTable
@@ -93,7 +110,26 @@ function PricingRoute() {
         columns={columns}
       />
 
-      <PricingFormDialog open={formOpen} onOpenChange={setFormOpen} rule={editing} />
+      <ModelSuggestionPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={(s) => {
+          setPickerOpen(false);
+          setEditing(null);
+          setSuggestionDefaults(s);
+          setFormOpen(true);
+        }}
+      />
+
+      <PricingFormDialog
+        open={formOpen}
+        onOpenChange={(o) => {
+          setFormOpen(o);
+          if (!o) setSuggestionDefaults(null);
+        }}
+        rule={editing}
+        defaultValues={suggestionDefaults}
+      />
 
       <ConfirmDialog
         open={!!deleting}

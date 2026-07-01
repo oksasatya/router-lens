@@ -25,6 +25,12 @@ interface PricingFormDialogProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly rule: PricingRule | null;
+  readonly defaultValues?: {
+    provider: string;
+    model: string;
+    input_price_per_1m: string;
+    output_price_per_1m: string;
+  } | null;
 }
 
 function isNonNegativeNumber(value: string): boolean {
@@ -32,7 +38,7 @@ function isNonNegativeNumber(value: string): boolean {
   return !Number.isNaN(n) && n >= 0;
 }
 
-export function PricingFormDialog({ open, onOpenChange, rule }: PricingFormDialogProps) {
+export function PricingFormDialog({ open, onOpenChange, rule, defaultValues = null }: PricingFormDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isEdit = !!rule;
@@ -56,18 +62,18 @@ export function PricingFormDialog({ open, onOpenChange, rule }: PricingFormDialo
   });
 
   // ponytail: react-doctor flags this as "event logic in an effect" — it's not;
-  // this resyncs form state to the `open`/`rule` props each time the dialog
+  // this resyncs form state to the `open`/`rule`/`defaultValues` props each time the dialog
   // opens (React's own documented use of useEffect), not a faked event handler.
   useEffect(() => {
     if (open) {
       form.reset({
-        provider: rule?.provider ?? "",
-        model: rule?.model ?? "",
-        input_price_per_1m: rule?.input_price_per_1m ?? "",
-        output_price_per_1m: rule?.output_price_per_1m ?? "",
+        provider: rule?.provider ?? defaultValues?.provider ?? "",
+        model: rule?.model ?? defaultValues?.model ?? "",
+        input_price_per_1m: rule?.input_price_per_1m ?? defaultValues?.input_price_per_1m ?? "",
+        output_price_per_1m: rule?.output_price_per_1m ?? defaultValues?.output_price_per_1m ?? "",
       });
     }
-  }, [open, rule, form]);
+  }, [open, rule, defaultValues, form]);
 
   const mutation = useMutation({
     mutationFn: async (values: {

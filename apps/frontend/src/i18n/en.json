@@ -129,6 +129,14 @@
     "deleted": "Pricing rule deleted",
     "deleteTitle": "Delete pricing rule?",
     "deleteDescription": "Delete the rule for \"{{provider}} / {{model}}\"? Future events for this model become unpriced.",
+    "suggestions": {
+      "browse": "New from suggestion",
+      "title": "Pick a model",
+      "searchPlaceholder": "Search provider or model…",
+      "empty": "No suggestions available.",
+      "unavailable": "Suggestions unavailable right now — enter the rule manually.",
+      "caption": "Reference prices from OpenRouter — confirm the provider/model text matches exactly what your router reports before saving."
+    },
     "errors": {
       "providerRequired": "Provider is required.",
       "modelRequired": "Model is required.",

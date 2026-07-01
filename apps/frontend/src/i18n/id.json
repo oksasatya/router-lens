@@ -129,6 +129,14 @@
     "deleted": "Aturan harga dihapus",
     "deleteTitle": "Hapus aturan harga?",
     "deleteDescription": "Hapus aturan untuk \"{{provider}} / {{model}}\"? Event mendatang untuk model ini jadi tanpa harga.",
+    "suggestions": {
+      "browse": "Baru dari saran",
+      "title": "Pilih model",
+      "searchPlaceholder": "Cari provider atau model…",
+      "empty": "Belum ada saran tersedia.",
+      "unavailable": "Saran sedang tidak tersedia — isi aturan secara manual.",
+      "caption": "Harga referensi dari OpenRouter — pastikan teks provider/model persis sama seperti yang dilaporkan router Anda sebelum menyimpan."
+    },
     "errors": {
       "providerRequired": "Provider wajib diisi.",
       "modelRequired": "Model wajib diisi.",
