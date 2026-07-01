@@ -62,5 +62,27 @@
       "passwordMin": "Password must be at least 8 characters.",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "projects": {
+    "new": "New project",
+    "empty": "No projects yet.",
+    "fields": {
+      "name": "Name",
+      "slug": "Slug",
+      "description": "Description",
+      "createdAt": "Created"
+    },
+    "newTitle": "New project",
+    "editTitle": "Edit project",
+    "formDescription": "Projects group API keys and the events ingested with them.",
+    "created": "Project created",
+    "updated": "Project updated",
+    "deleted": "Project deleted",
+    "deleteTitle": "Delete project?",
+    "deleteDescription": "Delete \"{{name}}\"? Its API keys will stop working. This cannot be undone.",
+    "noDescription": "No description.",
+    "errors": {
+      "nameRequired": "Project name is required."
+    }
   }
 }

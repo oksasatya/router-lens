@@ -24,3 +24,13 @@ export const paginationSchema = z.object({
 export function paginated<T extends z.ZodTypeAny>(item: T) {
   return z.object({ items: z.array(item), pagination: paginationSchema });
 }
+
+export const projectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Project = z.infer<typeof projectSchema>;

@@ -62,5 +62,27 @@
       "passwordMin": "Kata sandi minimal 8 karakter.",
       "generic": "Terjadi kesalahan. Silakan coba lagi."
     }
+  },
+  "projects": {
+    "new": "Proyek baru",
+    "empty": "Belum ada proyek.",
+    "fields": {
+      "name": "Nama",
+      "slug": "Slug",
+      "description": "Deskripsi",
+      "createdAt": "Dibuat"
+    },
+    "newTitle": "Proyek baru",
+    "editTitle": "Ubah proyek",
+    "formDescription": "Proyek mengelompokkan kunci API dan event yang masuk lewat kunci itu.",
+    "created": "Proyek dibuat",
+    "updated": "Proyek diperbarui",
+    "deleted": "Proyek dihapus",
+    "deleteTitle": "Hapus proyek?",
+    "deleteDescription": "Hapus \"{{name}}\"? Kunci API-nya akan berhenti berfungsi. Tindakan ini tidak bisa dibatalkan.",
+    "noDescription": "Tidak ada deskripsi.",
+    "errors": {
+      "nameRequired": "Nama proyek wajib diisi."
+    }
   }
 }
