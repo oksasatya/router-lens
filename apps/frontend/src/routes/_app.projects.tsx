@@ -10,6 +10,7 @@ import { OffsetPagination } from "@/components/OffsetPagination";
 import { ProjectFormDialog } from "@/components/projects/ProjectFormDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ApiError } from "@/lib/api";
 import { formatTimestamp } from "@/lib/date";
 import { projectsQueryOptions } from "@/lib/projects";
 import type { Project } from "@/lib/schemas";
@@ -42,9 +43,16 @@ function ProjectsRoute() {
       setDeleting(null);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : t("common.errors.generic");
+      toast.error(message);
+    },
   });
 
   const columns: DataTableColumn<Project>[] = [
+    // ponytail: plain text for now — wrap in <Link to="/projects/$projectId">
+    // once that detail route exists (separate task); linking to a route that
+    // doesn't exist yet breaks TanStack Router's typed route generation.
     {
       key: "name",
       header: t("projects.fields.name"),
