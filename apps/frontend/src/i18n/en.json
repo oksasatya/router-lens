@@ -19,7 +19,17 @@
     "system": "System",
     "signIn": "Sign in",
     "comingSoon": "Coming soon",
-    "menu": "Menu"
+    "menu": "Menu",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "done": "Done",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{totalPages}}"
   },
   "auth": {
     "login": {

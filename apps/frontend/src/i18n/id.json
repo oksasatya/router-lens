@@ -19,7 +19,17 @@
     "system": "Sistem",
     "signIn": "Masuk",
     "comingSoon": "Segera hadir",
-    "menu": "Menu"
+    "menu": "Menu",
+    "edit": "Ubah",
+    "delete": "Hapus",
+    "save": "Simpan",
+    "create": "Buat",
+    "cancel": "Batal",
+    "copy": "Salin",
+    "done": "Selesai",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "pageOf": "Halaman {{page}} dari {{totalPages}}"
   },
   "auth": {
     "login": {
