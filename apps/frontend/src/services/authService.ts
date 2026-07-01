@@ -36,3 +36,23 @@ export async function setup(input: SetupInput): Promise<void> {
 export async function logout(): Promise<void> {
   await api.post("/auth/logout");
 }
+
+export interface UpdateProfileInput {
+  name: string;
+}
+
+/** PUT /auth/me — updates the admin's display name. */
+export async function updateProfile(input: UpdateProfileInput): Promise<User> {
+  const res = await api.put("/auth/me", input);
+  return userSchema.parse(res.data);
+}
+
+export interface ChangePasswordInput {
+  current_password: string;
+  new_password: string;
+}
+
+/** POST /auth/change-password — rotates the password hash and revokes every other session. */
+export async function changePassword(input: ChangePasswordInput): Promise<void> {
+  await api.post("/auth/change-password", input);
+}

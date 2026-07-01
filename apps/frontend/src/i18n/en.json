@@ -212,5 +212,32 @@
     "noProjectsTitle": "No projects yet",
     "noProjectsCta": "Create your first project",
     "noEvents": "No events in the last 24 hours"
+  },
+  "settings": {
+    "profile": {
+      "title": "Profile",
+      "description": "Update your display name.",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "save": "Save changes",
+      "updated": "Profile updated",
+      "errors": {
+        "nameRequired": "Name is required"
+      }
+    },
+    "password": {
+      "title": "Password",
+      "description": "Change your account password. Other active sessions will be signed out.",
+      "currentLabel": "Current password",
+      "newLabel": "New password",
+      "confirmLabel": "Confirm new password",
+      "save": "Change password",
+      "updated": "Password changed",
+      "errors": {
+        "required": "This field is required",
+        "tooShort": "Must be at least 8 characters",
+        "mismatch": "Passwords do not match"
+      }
+    }
   }
 }

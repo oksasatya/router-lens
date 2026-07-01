@@ -212,5 +212,32 @@
     "noProjectsTitle": "Belum ada proyek",
     "noProjectsCta": "Buat proyek pertama",
     "noEvents": "Tidak ada event dalam 24 jam terakhir"
+  },
+  "settings": {
+    "profile": {
+      "title": "Profil",
+      "description": "Ubah nama tampilan Anda.",
+      "nameLabel": "Nama",
+      "emailLabel": "Email",
+      "save": "Simpan perubahan",
+      "updated": "Profil diperbarui",
+      "errors": {
+        "nameRequired": "Nama wajib diisi"
+      }
+    },
+    "password": {
+      "title": "Kata Sandi",
+      "description": "Ubah kata sandi akun Anda. Sesi aktif lainnya akan keluar otomatis.",
+      "currentLabel": "Kata sandi saat ini",
+      "newLabel": "Kata sandi baru",
+      "confirmLabel": "Konfirmasi kata sandi baru",
+      "save": "Ubah kata sandi",
+      "updated": "Kata sandi diubah",
+      "errors": {
+        "required": "Wajib diisi",
+        "tooShort": "Minimal 8 karakter",
+        "mismatch": "Kata sandi tidak cocok"
+      }
+    }
   }
 }
