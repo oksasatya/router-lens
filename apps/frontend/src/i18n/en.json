@@ -110,5 +110,30 @@
     "errors": {
       "nameRequired": "Key name is required."
     }
+  },
+  "pricing": {
+    "new": "New rule",
+    "empty": "No pricing rules yet — events for unpriced models show cost as unpriced.",
+    "fields": {
+      "provider": "Provider",
+      "model": "Model",
+      "inputPrice": "Input $/1M",
+      "outputPrice": "Output $/1M",
+      "updatedAt": "Updated"
+    },
+    "newTitle": "New pricing rule",
+    "editTitle": "Edit pricing rule",
+    "formDescription": "Prices are per 1M tokens in USD, applied to events at ingest time.",
+    "created": "Pricing rule created",
+    "updated": "Pricing rule updated",
+    "deleted": "Pricing rule deleted",
+    "deleteTitle": "Delete pricing rule?",
+    "deleteDescription": "Delete the rule for \"{{provider}} / {{model}}\"? Future events for this model become unpriced.",
+    "errors": {
+      "providerRequired": "Provider is required.",
+      "modelRequired": "Model is required.",
+      "priceRequired": "Price is required.",
+      "priceInvalid": "Enter a non-negative number."
+    }
   }
 }

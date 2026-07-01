@@ -48,3 +48,15 @@ export type ApiKey = z.infer<typeof apiKeySchema>;
 /** POST /projects/:id/api-keys response — carries the plaintext key exactly once. */
 export const apiKeyCreatedSchema = apiKeySchema.extend({ key: z.string() });
 export type ApiKeyCreated = z.infer<typeof apiKeyCreatedSchema>;
+
+export const pricingRuleSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  model: z.string(),
+  input_price_per_1m: z.string(),
+  output_price_per_1m: z.string(),
+  currency: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type PricingRule = z.infer<typeof pricingRuleSchema>;

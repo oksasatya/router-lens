@@ -110,5 +110,30 @@
     "errors": {
       "nameRequired": "Nama kunci wajib diisi."
     }
+  },
+  "pricing": {
+    "new": "Aturan baru",
+    "empty": "Belum ada aturan harga — event untuk model tanpa harga tampil sebagai unpriced.",
+    "fields": {
+      "provider": "Provider",
+      "model": "Model",
+      "inputPrice": "Input $/1M",
+      "outputPrice": "Output $/1M",
+      "updatedAt": "Diperbarui"
+    },
+    "newTitle": "Aturan harga baru",
+    "editTitle": "Ubah aturan harga",
+    "formDescription": "Harga per 1 juta token dalam USD, diterapkan ke event saat masuk.",
+    "created": "Aturan harga dibuat",
+    "updated": "Aturan harga diperbarui",
+    "deleted": "Aturan harga dihapus",
+    "deleteTitle": "Hapus aturan harga?",
+    "deleteDescription": "Hapus aturan untuk \"{{provider}} / {{model}}\"? Event mendatang untuk model ini jadi tanpa harga.",
+    "errors": {
+      "providerRequired": "Provider wajib diisi.",
+      "modelRequired": "Model wajib diisi.",
+      "priceRequired": "Harga wajib diisi.",
+      "priceInvalid": "Masukkan angka non-negatif."
+    }
   }
 }
