@@ -200,5 +200,17 @@
       "tokens": "Tokens (in/out)",
       "cost": "Cost"
     }
+  },
+  "dashboard": {
+    "statRequests": "Requests (24h)",
+    "statCost": "Cost (24h)",
+    "statErrorRate": "Error rate (24h)",
+    "recentEvents": "Recent events",
+    "recentProjects": "Projects",
+    "viewAllLogs": "View all logs",
+    "viewAllProjects": "View all",
+    "noProjectsTitle": "No projects yet",
+    "noProjectsCta": "Create your first project",
+    "noEvents": "No events in the last 24 hours"
   }
 }

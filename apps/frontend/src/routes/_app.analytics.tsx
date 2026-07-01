@@ -29,7 +29,8 @@ export const Route = createFileRoute("/_app/analytics")({
 });
 
 /** Renders a nullable cost string as USD, or UNPRICED — never coerces to $0 (decision 10/11). */
-function costOrUnpriced(usd: string | null): string {
+function costOrUnpriced(usd: string | null, totalRequests: number): string {
+  if (totalRequests === 0) return "—";
   return usd ? formatUSD(usd) : UNPRICED;
 }
 
@@ -53,13 +54,13 @@ function AnalyticsRoute() {
     { key: "provider", header: t("analytics.columns.provider"), cell: (s) => s.provider },
     { key: "requests", header: t("analytics.columns.requests"), cell: (s) => formatTokens(s.request_count) },
     { key: "tokens", header: t("analytics.columns.tokens"), cell: (s) => `${formatTokens(s.input_tokens)} / ${formatTokens(s.output_tokens)}` },
-    { key: "cost", header: t("analytics.columns.cost"), cell: (s) => costOrUnpriced(s.cost_usd) },
+    { key: "cost", header: t("analytics.columns.cost"), cell: (s) => costOrUnpriced(s.cost_usd, s.request_count) },
   ];
   const modelColumns: DataTableColumn<ModelStat>[] = [
     { key: "model", header: t("analytics.columns.model"), cell: (s) => `${s.provider} / ${s.model}` },
     { key: "requests", header: t("analytics.columns.requests"), cell: (s) => formatTokens(s.request_count) },
     { key: "tokens", header: t("analytics.columns.tokens"), cell: (s) => `${formatTokens(s.input_tokens)} / ${formatTokens(s.output_tokens)}` },
-    { key: "cost", header: t("analytics.columns.cost"), cell: (s) => costOrUnpriced(s.cost_usd) },
+    { key: "cost", header: t("analytics.columns.cost"), cell: (s) => costOrUnpriced(s.cost_usd, s.request_count) },
   ];
 
   return (
@@ -72,7 +73,7 @@ function AnalyticsRoute() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatCard label={t("analytics.stats.requests")} value={o ? formatTokens(o.total_requests) : "—"} />
         <StatCard label={t("analytics.stats.tokens")} value={o ? `${formatTokens(o.total_input_tokens)} / ${formatTokens(o.total_output_tokens)}` : "—"} />
-        <StatCard label={t("analytics.stats.cost")} value={o ? costOrUnpriced(o.total_cost_usd) : "—"} hint={o && o.unpriced_count > 0 ? t("analytics.stats.unpricedHint", { count: o.unpriced_count }) : undefined} />
+        <StatCard label={t("analytics.stats.cost")} value={o ? costOrUnpriced(o.total_cost_usd, o.total_requests) : "—"} hint={o && o.unpriced_count > 0 ? t("analytics.stats.unpricedHint", { count: o.unpriced_count }) : undefined} />
         <StatCard label={t("analytics.stats.latency")} value={o ? `${formatDuration(o.avg_latency_ms)} / ${formatDuration(o.p95_latency_ms)}` : "—"} hint={t("analytics.stats.latencyHint")} />
         <StatCard label={t("analytics.stats.errorRate")} value={o ? `${(o.error_rate * 100).toFixed(1)}%` : "—"} tone={o && o.error_rate > 0 ? "danger" : "default"} />
         <StatCard label={t("analytics.stats.mostUsed")} value={o?.most_used_model || "—"} hint={o?.most_used_provider} />

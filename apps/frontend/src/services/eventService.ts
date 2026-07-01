@@ -8,6 +8,7 @@ export interface EventFilters {
   readonly provider?: string;
   readonly model?: string;
   readonly isError?: boolean;
+  readonly limit?: number;
 }
 
 function filterParams(filters: EventFilters, extra: Record<string, string> = {}): Record<string, string> {
@@ -17,6 +18,7 @@ function filterParams(filters: EventFilters, extra: Record<string, string> = {})
   if (filters.provider) params.provider = filters.provider;
   if (filters.model) params.model = filters.model;
   if (filters.isError !== undefined) params.is_error = String(filters.isError);
+  if (filters.limit) params.limit = String(filters.limit);
   return params;
 }
 

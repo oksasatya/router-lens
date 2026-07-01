@@ -200,5 +200,17 @@
       "tokens": "Token (masuk/keluar)",
       "cost": "Biaya"
     }
+  },
+  "dashboard": {
+    "statRequests": "Permintaan (24 jam)",
+    "statCost": "Biaya (24 jam)",
+    "statErrorRate": "Tingkat error (24 jam)",
+    "recentEvents": "Event terbaru",
+    "recentProjects": "Proyek",
+    "viewAllLogs": "Lihat semua log",
+    "viewAllProjects": "Lihat semua",
+    "noProjectsTitle": "Belum ada proyek",
+    "noProjectsCta": "Buat proyek pertama",
+    "noEvents": "Tidak ada event dalam 24 jam terakhir"
   }
 }
