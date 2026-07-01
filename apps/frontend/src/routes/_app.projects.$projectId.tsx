@@ -28,8 +28,8 @@ function ProjectDetailRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const project = useQuery(projectQueryOptions(projectId));
-  const keys = useQuery(apiKeysQueryOptions(projectId));
+  const { data: project } = useQuery(projectQueryOptions(projectId));
+  const { data: keyRows, isLoading: keysLoading } = useQuery(apiKeysQueryOptions(projectId));
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -97,7 +97,11 @@ function ProjectDetailRoute() {
     },
   ];
 
-  if (!project.data) return null;
+  // ponytail: no skeleton for the pre-load gap and the back-link below always
+  // returns to page 1 (not the page the user came from) — both noted in FE-03
+  // task reviews as optional polish; deferred, add if it becomes a real
+  // complaint rather than build a skeleton/origin-page-passthrough speculatively.
+  if (!project) return null;
 
   return (
     <div className="space-y-6">
@@ -108,10 +112,10 @@ function ProjectDetailRoute() {
 
       <Card className="flex items-start justify-between p-6">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">{project.data.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{project.data.slug}</p>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">{project.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{project.slug}</p>
           <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-            {project.data.description || t("projects.noDescription")}
+            {project.description || t("projects.noDescription")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -137,22 +141,22 @@ function ProjectDetailRoute() {
         </div>
 
         <DataTable
-          rows={keys.data ?? []}
+          rows={keyRows ?? []}
           rowKey={(k) => k.id}
-          isLoading={keys.isLoading}
+          isLoading={keysLoading}
           emptyMessage={t("apiKeys.empty")}
           columns={keyColumns}
         />
       </div>
 
-      <ProjectFormDialog open={editOpen} onOpenChange={setEditOpen} project={project.data} />
+      <ProjectFormDialog open={editOpen} onOpenChange={setEditOpen} project={project} />
       <ApiKeyCreateDialog projectId={projectId} open={keyDialogOpen} onOpenChange={setKeyDialogOpen} />
 
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title={t("projects.deleteTitle")}
-        description={t("projects.deleteDescription", { name: project.data.name })}
+        description={t("projects.deleteDescription", { name: project.name })}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         destructive

@@ -14,7 +14,7 @@ export type User = z.infer<typeof userSchema>;
 export const setupStatusSchema = z.object({ needs_setup: z.boolean() });
 export type SetupStatus = z.infer<typeof setupStatusSchema>;
 
-export const paginationSchema = z.object({
+const paginationSchema = z.object({
   page: z.number(),
   limit: z.number(),
   total: z.number(),

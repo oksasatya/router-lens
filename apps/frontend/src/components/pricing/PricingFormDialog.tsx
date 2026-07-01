@@ -55,6 +55,9 @@ export function PricingFormDialog({ open, onOpenChange, rule }: PricingFormDialo
     defaultValues: { provider: "", model: "", input_price_per_1m: "", output_price_per_1m: "" },
   });
 
+  // ponytail: react-doctor flags this as "event logic in an effect" — it's not;
+  // this resyncs form state to the `open`/`rule` props each time the dialog
+  // opens (React's own documented use of useEffect), not a faked event handler.
   useEffect(() => {
     if (open) {
       form.reset({

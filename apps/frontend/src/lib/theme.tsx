@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type Theme = "light" | "dark" | "system";
 const STORAGE_KEY = "theme";
@@ -27,11 +27,8 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
     applyTheme(theme);
     globalThis.localStorage?.setItem(STORAGE_KEY, theme);
   }, [theme]);
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme: setThemeState }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  const value = useMemo(() => ({ theme, setTheme: setThemeState }), [theme]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

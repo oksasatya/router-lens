@@ -30,7 +30,7 @@ function ProjectsRoute() {
   const navigate = Route.useNavigate();
   const { page } = Route.useSearch();
   const queryClient = useQueryClient();
-  const query = useQuery({ ...projectsQueryOptions(page, LIMIT), placeholderData: keepPreviousData });
+  const { data, isLoading } = useQuery({ ...projectsQueryOptions(page, LIMIT), placeholderData: keepPreviousData });
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -109,18 +109,18 @@ function ProjectsRoute() {
       </div>
 
       <DataTable
-        rows={query.data?.items ?? []}
+        rows={data?.items ?? []}
         rowKey={(p) => p.id}
-        isLoading={query.isLoading}
+        isLoading={isLoading}
         emptyMessage={t("projects.empty")}
         columns={columns}
       />
 
-      {query.data && (
+      {data && (
         <OffsetPagination
-          page={query.data.pagination.page}
-          limit={query.data.pagination.limit}
-          total={query.data.pagination.total}
+          page={data.pagination.page}
+          limit={data.pagination.limit}
+          total={data.pagination.total}
           onPageChange={(p) => navigate({ search: { page: p } })}
         />
       )}

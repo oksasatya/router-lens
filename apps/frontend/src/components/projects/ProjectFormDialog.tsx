@@ -44,6 +44,9 @@ export function ProjectFormDialog({ open, onOpenChange, project }: ProjectFormDi
     defaultValues: { name: "", description: "" },
   });
 
+  // ponytail: react-doctor flags this as "event logic in an effect" — it's not;
+  // this resyncs form state to the `open`/`project` props each time the dialog
+  // opens (React's own documented use of useEffect), not a faked event handler.
   useEffect(() => {
     if (open) form.reset({ name: project?.name ?? "", description: project?.description ?? "" });
   }, [open, project, form]);

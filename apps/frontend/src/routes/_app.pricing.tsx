@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/pricing")({
 function PricingRoute() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const query = useQuery(pricingQueryOptions);
+  const { data, isLoading } = useQuery(pricingQueryOptions);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PricingRule | null>(null);
@@ -86,9 +86,9 @@ function PricingRoute() {
       </div>
 
       <DataTable
-        rows={query.data ?? []}
+        rows={data ?? []}
         rowKey={(p) => p.id}
-        isLoading={query.isLoading}
+        isLoading={isLoading}
         emptyMessage={t("pricing.empty")}
         columns={columns}
       />
