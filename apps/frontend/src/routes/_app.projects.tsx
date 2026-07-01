@@ -44,7 +44,7 @@ function ProjectsRoute() {
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (error) => {
-      const message = error instanceof ApiError ? error.message : t("common.errors.generic");
+      const message = error instanceof ApiError ? error.message : t("auth.errors.generic");
       toast.error(message);
     },
   });
